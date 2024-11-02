@@ -7,8 +7,6 @@ from tkinter import messagebox
 from tkinter.filedialog import askopenfilename
 from PIL import ImageTk, Image
 
-# testing git
-
 # The goal for this progam is to:
 # 1. Read an input image
 # 2. Simplify the image into an array of scalars based on a legend
