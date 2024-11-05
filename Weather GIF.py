@@ -3,6 +3,7 @@ import cv2 as cv
 import imageio
 import os
 import tkinter as Tk
+from matplotlib import pyplot as plt
 from tkinter import messagebox
 from tkinter.filedialog import askopenfilename
 from PIL import ImageTk, Image
@@ -185,17 +186,17 @@ def plot_scale(arr):
     return plot_out
 
 # function to smooth out the colors
-def plot_smooth(arr,r):
-    ##################################################
-    # User defined: radius of smoothing
-    x,y = arr.shape
+def plot_smooth(arr,repeat):
     arr_out = np.copy(arr)
-    for i1 in range(len(arr_out)):
-        for j1 in range(len(arr_out[0])):
-            if arr[i1,j1] == 0:
-                x1, x2, y1, y2 = max(0,i1-r), min(x-1,i1+r+1), max(0,j1-r), min(y-1,j1+r+1)
-                l = arr[x1:x2,y1:y2]
-                if np.sum(l) > 0: arr_out[i1,j1] = int(np.sum(l) / np.sum(l != 0))
+    for r in range(repeat):
+        arr_num = np.zeros(arr.shape)
+        arr_den = np.zeros(arr.shape)
+        arr_bol = arr_out == 0
+        for i_psa in [0,1]:
+            for j_psa in [-1,1]:
+                arr_num = arr_num + np.roll(arr_out,           j_psa,axis = i_psa)
+                arr_den = arr_den + np.roll(np.invert(arr_bol),j_psa,axis = i_psa)
+        arr_out = arr_out + np.multiply(np.divide(arr_num,arr_den,where = arr_den != 0),arr_bol)
     return arr_out
 
 def image_restore(plot,subject,scale):
@@ -535,7 +536,7 @@ if FS.ext == ".gif" or FS.ext == ".jpg":
     c = config_read(FS.config)
     scale = scale_build_RGB(c.scale)
 
-    # This has been moved to build_config.  It shoudl be accounted for when you
+    # This has been moved to build_config.  It should be accounted for when you
     # create a new template.
     # # if the scale wasn't already coded in the config file, code it now
     # # and save the results into the config file
@@ -551,8 +552,7 @@ if FS.ext == ".gif" or FS.ext == ".jpg":
 
     # turn the image into a scalar plot and then smooth it over
     plot = plot_scale(image.copy())
-    plot = plot_smooth(plot,20)
-    plot = plot_smooth(plot,20)
+    plot = plot_smooth(plot,100)
 
     # FIX: this needs to move to "new template"
     # if we are creating a config file and new template then save the template
@@ -596,7 +596,7 @@ if FS.ext == ".gif" or FS.ext == ".jpg":
     #################################################################
     # User defined: # DFT coefficients
     # number of terms will be ((n * 2) ^ 2) * 2
-    n = 15
+    n = 10
 
     # Remove higher frequency coefficients
     DFT[n:x-n,:,:] = np.zeros((x-2*n,y,2))
@@ -614,7 +614,11 @@ if FS.ext == ".gif" or FS.ext == ".jpg":
         print("UNCLAS",                                                           file = file)
         print("SUBJ/VLF WEATHER GIF FOR " + FS.subject.upper() + "//",            file = file)
         print("RMKS/SEE INSTRUCTIONS ON CSP WEBSITE ON HOW TO USE THIS MESSAGE.", file = file)
-        print(str(x) + "/" + str(y) + "/" + str(n) + "/" + str(np.max(plot)) + "/" + FS.subject + "/WXYZ//", file = file)
+        print(str(x) + "/" + 
+              str(y) + "/" + 
+              str(n) + "/" + 
+              str(int(np.max(plot))) + "/" + 
+              FS.subject + "/WXYZ//", file = file)
         S = ""
         for i in range(n):
             for j in range(n):
