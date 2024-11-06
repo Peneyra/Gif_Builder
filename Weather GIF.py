@@ -314,6 +314,40 @@ def c_str(i):
 #####################################################################
 def build_config_and_template(image):
     # FIX build a template and config file
+    # FIX: this needs to move to "new template"
+    # if we are creating a config file and new template then save the template
+    # if not os.path.exists(FS.template):
+    #     plot_temp = plot_smooth(plot,2) != 0
+    #     image_template = image.copy()
+    #     for i in range(3): image_template[:,:,i] = np.multiply(image[:,:,i],np.invert(plot_temp).astype(int))
+    #     image_template[:,:,2] = image_template[:,:,2] + 125 * plot_temp.astype(int)
+
+    #     # crop out a part of the image (namely the legend)
+    #     ##################################################
+    #     # config file: x1 = left most x, x2 =  right most x
+    #     #              y1 =  top most y, y2 = bottom most y
+    #     # crop the image to remove everything except the legend
+    #     cv.imwrite(FS.template, image_template)
+    #     if c['crop_x1'][0] !=0:
+    #         if abs((c['scale_x'][0] - c['crop_x1'][0]) / x) > 0.1 or c['scale_x'] == [0]:
+    #             image_template[:,0:c['crop_x1'][0],:] = \
+    #                 255 * np.ones(image_template[:,0:c['crop_x1'][0],:].shape).astype(np.uint8)
+    #     if c['crop_x2'][0] !=0: 
+    #         if abs((c['scale_x'][0] - c['crop_x2'][0]) / x) > 0.1 or c['scale_x'] == [0]:
+    #             image_template[:,c['crop_x2'][0]:y,:] = \
+    #                 255 * np.ones(image_template[:,c['crop_x2'][0]:y,:].shape).astype(np.uint8)
+    #     if c['crop_y1'][0] !=0: 
+    #         if abs((c['scale_y'][0] - c['crop_y1'][0]) / y) > 0.1 or c['scale_y'] == [0]:
+    #             image_template[0:c['crop_y1'][0],:,:] = \
+    #                 255 * np.ones(image_template[0:c['crop_y1'][0],:,:].shape).astype(np.uint8)
+    #     if c['crop_y2'][0] !=0: 
+    #         if abs((c['scale_y'][0] - c['crop_y1'][0]) / y) > 0.1 or c['scale_y'] == [0]:
+    #             image_template[c['crop_y2'][0]:x,:,:] = \
+    #                 255 * np.ones(image_template[c['crop_y2'][0]:x,:,:].shape).astype(np.uint8)
+
+    #     cv.imwrite(FS.template, image_template)
+
+
     image_display = image.copy()
 
     bg_color = "light gray"
@@ -536,56 +570,13 @@ if FS.ext == ".gif" or FS.ext == ".jpg":
     c = config_read(FS.config)
     scale = scale_build_RGB(c.scale)
 
-    # This has been moved to build_config.  It should be accounted for when you
-    # create a new template.
-    # # if the scale wasn't already coded in the config file, code it now
-    # # and save the results into the config file
-    # if not "scale" in c:
-    #     new_template = True
-    #     if not c['scale_x'][0] == 0: scale_raw = image[:,c['scale_x'][0],:][::-1]
-    #     elif not c['scale_y'][0] == 0: scale_raw = image[c['scale_y'][0],:,:]
-    #     c["scale"] = scale_build_int(scale_raw)
-    #     with open('./templates/' + subject + '/' + subject + '.config', 'a') as file:
-    #         for s in c["scale"]:
-    #             print("scale = " + str(s), file = file)
-    #     scale = scale_build(c["scale"])
+
 
     # turn the image into a scalar plot and then smooth it over
     plot = plot_scale(image.copy())
     plot = plot_smooth(plot,100)
 
-    # FIX: this needs to move to "new template"
-    # if we are creating a config file and new template then save the template
-    # if not os.path.exists(FS.template):
-    #     plot_temp = plot_smooth(plot,2) != 0
-    #     image_template = image.copy()
-    #     for i in range(3): image_template[:,:,i] = np.multiply(image[:,:,i],np.invert(plot_temp).astype(int))
-    #     image_template[:,:,2] = image_template[:,:,2] + 125 * plot_temp.astype(int)
 
-    #     # crop out a part of the image (namely the legend)
-    #     ##################################################
-    #     # config file: x1 = left most x, x2 =  right most x
-    #     #              y1 =  top most y, y2 = bottom most y
-    #     # crop the image to remove everything except the legend
-    #     cv.imwrite(FS.template, image_template)
-    #     if c['crop_x1'][0] !=0:
-    #         if abs((c['scale_x'][0] - c['crop_x1'][0]) / x) > 0.1 or c['scale_x'] == [0]:
-    #             image_template[:,0:c['crop_x1'][0],:] = \
-    #                 255 * np.ones(image_template[:,0:c['crop_x1'][0],:].shape).astype(np.uint8)
-    #     if c['crop_x2'][0] !=0: 
-    #         if abs((c['scale_x'][0] - c['crop_x2'][0]) / x) > 0.1 or c['scale_x'] == [0]:
-    #             image_template[:,c['crop_x2'][0]:y,:] = \
-    #                 255 * np.ones(image_template[:,c['crop_x2'][0]:y,:].shape).astype(np.uint8)
-    #     if c['crop_y1'][0] !=0: 
-    #         if abs((c['scale_y'][0] - c['crop_y1'][0]) / y) > 0.1 or c['scale_y'] == [0]:
-    #             image_template[0:c['crop_y1'][0],:,:] = \
-    #                 255 * np.ones(image_template[0:c['crop_y1'][0],:,:].shape).astype(np.uint8)
-    #     if c['crop_y2'][0] !=0: 
-    #         if abs((c['scale_y'][0] - c['crop_y1'][0]) / y) > 0.1 or c['scale_y'] == [0]:
-    #             image_template[c['crop_y2'][0]:x,:,:] = \
-    #                 255 * np.ones(image_template[c['crop_y2'][0]:x,:,:].shape).astype(np.uint8)
-
-    #     cv.imwrite(FS.template, image_template)
 
 
     ################################################################
