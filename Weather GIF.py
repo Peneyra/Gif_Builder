@@ -347,12 +347,32 @@ def build_config_and_template(image):
 
     #     cv.imwrite(FS.template, image_template)
 
-
     image_display = image.copy()
 
     bg_color = "light gray"
     image_x = 500
     image_y = 400
+    global temp_build
+    temp_build = 0
+    #####################################################################
+    # C l i c k   b e h a v i o r
+    # Click 0 = Low end of scale
+    # Click 1 = High end of scale
+    # Click 2 = Top of map
+    # Click 3 = Bottom of map
+    # Click 4 = Left of map
+    # Click 5 = Right of map
+    def printcoords(e):
+        if e.widget.winfo_parent() == '.!frame2':
+            global temp_build
+            print(e.widget.winfo_parent())
+            print("x = " + str(e.x))
+            print("y = " + str(e.y))
+            if temp_build == 0:
+
+                temp_build = 1
+
+            return([e.x, e.y])
 
     def show(sub):
         global label_image
@@ -378,7 +398,7 @@ def build_config_and_template(image):
     #####################################################################
     # B u i l d   t h e   r o o t   U I
     root = Tk.Tk()
-    root.title = "Build your templatea"
+    root.title = "Build your template"
     root.config(bg = bg_color)
 
     #####################################################################
@@ -401,9 +421,14 @@ def build_config_and_template(image):
     template_dict = {}
     frame_2 = Tk.Frame(root, height = image_y, width = image_x, bg = bg_color)
     frame_2.pack(padx = 10, pady = 5)
-    template_dict["orig"] = ImageTk.PhotoImage(Image.fromarray(cv.cvtColor(image_display, cv.COLOR_BGR2RGB)).resize((image_x, image_y)))
-    orig_image = Tk.Label(frame_2, image = template_dict["orig"])
-    orig_image.pack()
+    
+    image_0 = np.floor_divide(image_display,2)
+    template_dict["image_orig"] = ImageTk.PhotoImage(Image.fromarray(cv.cvtColor(image_0, cv.COLOR_BGR2RGB)).resize((image_x, image_y)))
+    #orig_image = Tk.Label(frame_2, image = template_dict["image_orig"])
+    image = Tk.Label(frame_2)
+    show("image_orig")
+    image.pack()
+    root.bind("<Button 1>", printcoords)
     
     #####################################################################
     # B u i l d   F r a m e   3   =   B u t t o n s
@@ -423,9 +448,14 @@ def build_config_and_template(image):
                         command = Cancel_click)
     button2.pack(padx = 10, pady = 5 , side = 'left')
 
+
     root.attributes("-topmost", True)
     root.protocol("WM_DELETE_WINDOW", Cancel_click)
     root.mainloop()
+
+
+
+
 
 def choose_template(image):
     def show(sub):
