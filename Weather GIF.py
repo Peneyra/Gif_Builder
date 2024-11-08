@@ -1,3 +1,4 @@
+from dis import Instruction
 import numpy as np
 import cv2 as cv
 import imageio
@@ -274,8 +275,8 @@ def c_int(i):
     elif r1_62 >= 10: r1 = chr(r1_62 + 65 - 10)
     else:             r1 = str(r1_62) 
 
-    print(i)
-    print(str(r) + " " + str(r0) + " " + str(r1))
+    # print(i)
+    # print(str(r) + " " + str(r0) + " " + str(r1))
 
     return str(r0) + str(r1)
 
@@ -314,7 +315,7 @@ def c_str(i):
 #####################################################################
 # G U I   f o r   t h e   s e n d e r   o f   t h e   g i f
 #####################################################################
-def build_config_and_template(image):
+def build_template(image):
     # FIX build a template and config file
     # FIX: this needs to move to "new template"
     # if we are creating a config file and new template then save the template
@@ -359,8 +360,18 @@ def build_config_and_template(image):
     la_x = 500
     global la_y
     la_y = 400
-    global temp_build
-    temp_build = 0
+    global template_index
+    template_index = 0
+
+    inst_dict = {}
+
+    inst_dict[0] =  "Find the low end of the color scale on the image by clicking on the image."
+    inst_dict[1] = "Find the high end of the color scale on the image by clicking on the image."
+    inst_dict[2] =    "Find the top edge of the map by clicking on the image. Do not cut off the coordinates."
+    inst_dict[3] = "Find the bottom edge of the map by clicking on the image. Do not cut off the coordinates."
+    inst_dict[4] =   "Find the left edge of the map by clicking on the image. Do not cut off the coordinates."
+    inst_dict[5] =  "Find the right edge of the map by clicking on the image. Do not cut off the coordinates."
+
     #####################################################################
     # C l i c k   b e h a v i o r
     # Click 0 = Low end of scale  image 0 -> 1
@@ -371,25 +382,102 @@ def build_config_and_template(image):
     # Click 5 = Right of map
     def image_click(e):
         if e.widget.winfo_parent() == '.!frame2':
-            global temp_build
+            global template_index
             global la_x
             global la_y
             print(e.widget.winfo_parent())
             print("x = " + str(e.x))
             print("y = " + str(e.y))
-            if temp_build == 0:
-                im_x, im_y = im_dict["image_0"].shape[:2]
+
+            im_x, im_y = im_dict["image_0"].shape[:2]
+            #####################################################################
+            # I n d e x   =   0
+            # adjust behavior based on which template index we are on
+            if template_index == 0:
                 im_dict["image_1"] = im_dict["image_0"].copy()
+
+                # set x, y for the start of the color scale
                 im_dict["scale_sta_x"] = int(np.floor(e.y * im_x / la_y))
                 im_dict["scale_sta_y"] = int(np.floor(e.x * im_y / la_x))
-                im_dict["image_1"][
-                    im_dict["scale_sta_x"]-10:im_dict["scale_sta_x"]+10, 
-                    im_dict["scale_sta_y"]-10:im_dict["scale_sta_y"]+10,:] = im_dict["image_0"][
-                        im_dict["scale_sta_x"]-10:im_dict["scale_sta_x"]+10, 
-                        im_dict["scale_sta_y"]-10:im_dict["scale_sta_y"]+10,:] * 2
-                show("image_1")
-                print(e.x)
-                print(e.y)
+
+                im_dict["scale_box"] = [im_dict["scale_sta_x"]-10,im_dict["scale_sta_x"]+10,im_dict["scale_sta_y"]-10,im_dict["scale_sta_y"]+10]
+
+            #####################################################################
+            # I n d e x   =   1
+            elif template_index == 1:
+                im_dict["image_2"] = im_dict["image_0"].copy()
+
+                # set x, y for the end of the color scale
+                im_dict["scale_end_x"] = int(np.floor(e.y * im_x / la_y))
+                im_dict["scale_end_y"] = int(np.floor(e.x * im_y / la_x))
+
+                # decide whether the scale is horizontal or vertical
+                if abs(im_dict["scale_sta_x"] - abs(im_dict["scale_end_x"])) >= abs(im_dict["scale_sta_y"] - abs(im_dict["scale_end_y"])):
+                    im_dict["scale_end_y"] = int(np.floor(np.average([im_dict["scale_sta_y"],im_dict["scale_end_y"]])))
+                    im_dict["scale_box"][2] = im_dict["scale_end_y"] - 10
+                    im_dict["scale_box"][3] = im_dict["scale_end_y"] + 10
+                    im_dict["scale_box"][0] = min(im_dict["scale_sta_x"],im_dict["scale_end_x"])-10
+                    im_dict["scale_box"][1] = max(im_dict["scale_sta_x"],im_dict["scale_end_x"])+10
+                else:
+                    im_dict["scale_end_x"] = int(np.floor(np.average([im_dict["scale_sta_x"],im_dict["scale_end_x"]])))
+                    im_dict["scale_box"][0] = im_dict["scale_end_x"] - 10
+                    im_dict["scale_box"][1] = im_dict["scale_end_x"] + 10
+                    im_dict["scale_box"][2] = min(im_dict["scale_sta_y"],im_dict["scale_end_y"])-10
+                    im_dict["scale_box"][3] = max(im_dict["scale_sta_y"],im_dict["scale_end_y"])+10
+
+            else:
+                im_dict["image_" + str(template_index + 1)] = im_dict["image_" + str(template_index)].copy()
+
+            #####################################################################
+            # I n d e x   =   2
+            if template_index == 2:
+                # set y1 for the top border
+                im_dict["crop_y1"] = int(np.floor(e.y * im_x / la_y))
+                
+                # cut out the upper part of the image
+                im_dict["image_3"][:im_dict["crop_y1"],:,:] = np.zeros((im_dict["crop_y1"],im_y,3))               
+
+            #####################################################################
+            # I n d e x   =   3
+            if template_index == 3:
+                # set y2 for the bottom border
+                im_dict["crop_y2"] = int(np.floor(e.y * im_x / la_y))
+                
+                # cut out the upper part of the image
+                im_dict["image_4"][im_dict["crop_y2"]:,:,:] = np.zeros((im_x - im_dict["crop_y2"],im_y,3))        
+
+            #####################################################################
+            # I n d e x   =   4
+            if template_index == 4:
+                # set x1 for the left border
+                im_dict["crop_x1"] = int(np.floor(e.x * im_y / la_x))
+                
+                # cut out the upper part of the image
+                im_dict["image_5"][:,:im_dict["crop_x1"],:] = np.zeros((im_x,im_dict["crop_x1"],3))    
+
+            #####################################################################
+            # I n d e x   =   5
+            if template_index == 5:
+                # set y2 for the bottom border
+                im_dict["crop_x2"] = int(np.floor(e.x * im_y / la_x))
+                
+                # cut out the upper part of the image
+                im_dict["image_5"][:,im_dict["crop_x2"]:,:] = np.zeros((im_x,im_y - im_dict["crop_x2"],3))   
+
+            # put the scale back regardless
+            im_dict["image_" + str(template_index + 1)][
+                im_dict["scale_box"][0]:im_dict["scale_box"][1], 
+                im_dict["scale_box"][2]:im_dict["scale_box"][3],:] = \
+                    im_dict["image_orig"][
+                        im_dict["scale_box"][0]:im_dict["scale_box"][1], 
+                        im_dict["scale_box"][2]:im_dict["scale_box"][3],:]
+
+            # display the highlighted image
+            show("image_" + str(template_index + 1))
+            print(e.x)
+            print(e.y) 
+
+            button_next.pack(padx = 10, pady = 5, side = 'left')
 
             return([e.x, e.y])
 
@@ -405,16 +493,34 @@ def build_config_and_template(image):
         root.destroy()
         return "quit"
 
-    def new_click():
-        # FIX build out what to do if the template does not exist
-        global image
-        print("new clicked")
-        build_config_and_template(image)
-        root.destroy()
+    def next_click():
+        print("next clicked")
+        global template_index
 
-    def select_click():
-        print("select clicked")
-        root.destroy()
+        if template_index < 5: 
+            template_index += 1
+            if template_index == 2: show("image_orig")
+            inst_text.config(text = inst_dict[template_index])
+            print("template_index = " + str(template_index))
+        else:
+            template_index
+        button_next.pack_forget()
+
+    def back_click():
+        print("back clicked")
+        global template_index
+        if template_index > 0: 
+            template_index += -1
+            if template_index == 2: 
+                show("image_orig")
+            else:
+                show("image_" + str(template_index))
+            inst_text.config(text = inst_dict[template_index])
+        else:
+            global image
+            root.destroy()
+            choose_template(image)
+
 
     #####################################################################
     # B u i l d   t h e   r o o t   U I
@@ -426,15 +532,15 @@ def build_config_and_template(image):
     # B u i l d   F r a m e   0   =   I n s t r u c t i o n s
     frame_0 = Tk.Frame(root, bg = bg_color)
     frame_0.pack(pady = 10)
-    instructions_title = Tk.Label(frame_0, justify = "left", wraplength = la_x, 
+    inst_title = Tk.Label(frame_0, justify = "left", wraplength = la_x, 
                             font = ("Arial",16), bg = bg_color,
                             text = 
-                            "Build your template:.").pack(anchor = "w")
-    instructions_text = Tk.Label(frame_0, justify = "left", wraplength = la_x,
+                            "Build your template:.")
+    inst_title.pack(anchor = "w")
+    inst_text = Tk.Label(frame_0, justify = "left", wraplength = la_x,
                                 font = ("Arial", 12), bg = bg_color,
-                                text = "Click above the top border of the map. " +
-                                "Do not cut off any of the coordiantes along the " +
-                                "side.").pack(anchor = "w")
+                                text = inst_dict[0])
+    inst_text.pack(anchor = "w")
 
     #####################################################################
     # B u i l d   F r a m e   2   =   T h e   I m a g e
@@ -454,24 +560,29 @@ def build_config_and_template(image):
     frame_3 = Tk.Frame(root, bg = bg_color)
     frame_3.pack()
 
-    button0 = Tk.Button(frame_3, 
-                        text = "Select Template", 
-                        command = select_click)
-    button0.pack(padx = 10, pady = 5, side = 'left')
+    button_next = Tk.Button(frame_3, 
+                        text = "Next", 
+                        command = next_click)
+    # button_next.pack(padx = 10, pady = 5, side = 'left')
 
-    button1 = Tk.Button(frame_3, text = "New Template", 
-                        command = new_click)
-    button1.pack(padx = 10, pady = 5 , side = 'left')
+    button_back = Tk.Button(frame_3, text = "Back", 
+                        command = back_click)
+    button_back.pack(padx = 10, pady = 5 , side = 'left')
 
-    button2 = Tk.Button(frame_3, text = "Cancel", 
+    button_canc = Tk.Button(frame_3, text = "Cancel", 
                         command = cancel_click)
-    button2.pack(padx = 10, pady = 5 , side = 'left')
+    button_canc.pack(padx = 10, pady = 5 , side = 'left')
 
 
     root.attributes("-topmost", True)
     root.protocol("WM_DELETE_WINDOW", cancel_click)
     root.bind("<Button 1>", image_click)
     root.mainloop()
+
+
+
+
+
 
 def choose_template(image):
     def show(sub):
@@ -488,7 +599,7 @@ def choose_template(image):
         global image
         print("new clicked")
         root.destroy()
-        build_config_and_template(image)
+        build_template(image)
 
     def select_click():
         global subject
