@@ -3,10 +3,12 @@ import cv2 as cv
 import imageio
 import os
 import tkinter as Tk
+import sys
 from matplotlib import pyplot as plt
 from tkinter import messagebox
 from tkinter.filedialog import askopenfilename
 from PIL import ImageTk, Image
+
 
 # The goal for this progam is to:
 # 1. Read an input image
@@ -347,51 +349,70 @@ def build_config_and_template(image):
 
     #     cv.imwrite(FS.template, image_template)
 
-    image_display = image.copy()
+
+    # populate a dictionary of template images
+    im_dict = {}
+    im_dict["image_orig"] = image.copy()
 
     bg_color = "light gray"
-    image_x = 500
-    image_y = 400
+    global la_x
+    la_x = 500
+    global la_y
+    la_y = 400
     global temp_build
     temp_build = 0
     #####################################################################
     # C l i c k   b e h a v i o r
-    # Click 0 = Low end of scale
-    # Click 1 = High end of scale
-    # Click 2 = Top of map
-    # Click 3 = Bottom of map
+    # Click 0 = Low end of scale  image 0 -> 1
+    # Click 1 = High end of scale image 1 -> 2
+    # Click 2 = Top of map        image 2 -> 3
+    # Click 3 = Bottom of map     etc.
     # Click 4 = Left of map
     # Click 5 = Right of map
-    def printcoords(e):
+    def image_click(e):
         if e.widget.winfo_parent() == '.!frame2':
             global temp_build
+            global la_x
+            global la_y
             print(e.widget.winfo_parent())
             print("x = " + str(e.x))
             print("y = " + str(e.y))
             if temp_build == 0:
-
-                temp_build = 1
+                im_x, im_y = im_dict["image_0"].shape[:2]
+                im_dict["image_1"] = im_dict["image_0"].copy()
+                im_dict["scale_sta_x"] = int(np.floor(e.y * im_x / la_y))
+                im_dict["scale_sta_y"] = int(np.floor(e.x * im_y / la_x))
+                im_dict["image_1"][
+                    im_dict["scale_sta_x"]-10:im_dict["scale_sta_x"]+10, 
+                    im_dict["scale_sta_y"]-10:im_dict["scale_sta_y"]+10,:] = im_dict["image_0"][
+                        im_dict["scale_sta_x"]-10:im_dict["scale_sta_x"]+10, 
+                        im_dict["scale_sta_y"]-10:im_dict["scale_sta_y"]+10,:] * 2
+                show("image_1")
+                print(e.x)
+                print(e.y)
 
             return([e.x, e.y])
 
-    def show(sub):
+    def show(im_name):
         global label_image
-        label_image.config(image = template_dict[sub])
+        global la_x
+        global la_y
+        im_dict[im_name + "_tk"] = ImageTk.PhotoImage(Image.fromarray(cv.cvtColor(im_dict[im_name], cv.COLOR_BGR2RGB)).resize((la_x,la_y)))
+        label_image.config(image = im_dict[im_name + "_tk"])
 
-    def Cancel_click():
+    def cancel_click():
         print("cancel clicked")
         root.destroy()
-        quit()
+        return "quit"
 
-    def New_click():
+    def new_click():
         # FIX build out what to do if the template does not exist
         global image
         print("new clicked")
         build_config_and_template(image)
         root.destroy()
 
-    def Select_click():
-        global subject
+    def select_click():
         print("select clicked")
         root.destroy()
 
@@ -405,11 +426,11 @@ def build_config_and_template(image):
     # B u i l d   F r a m e   0   =   I n s t r u c t i o n s
     frame_0 = Tk.Frame(root, bg = bg_color)
     frame_0.pack(pady = 10)
-    instructions_title = Tk.Label(frame_0, justify = "left", wraplength = image_x, 
+    instructions_title = Tk.Label(frame_0, justify = "left", wraplength = la_x, 
                             font = ("Arial",16), bg = bg_color,
                             text = 
                             "Build your template:.").pack(anchor = "w")
-    instructions_text = Tk.Label(frame_0, justify = "left", wraplength = image_x,
+    instructions_text = Tk.Label(frame_0, justify = "left", wraplength = la_x,
                                 font = ("Arial", 12), bg = bg_color,
                                 text = "Click above the top border of the map. " +
                                 "Do not cut off any of the coordiantes along the " +
@@ -417,18 +438,16 @@ def build_config_and_template(image):
 
     #####################################################################
     # B u i l d   F r a m e   2   =   T h e   I m a g e
-    # populate a dictionary of template images
-    template_dict = {}
-    frame_2 = Tk.Frame(root, height = image_y, width = image_x, bg = bg_color)
+
+    frame_2 = Tk.Frame(root, height = la_y, width = la_x, bg = bg_color)
     frame_2.pack(padx = 10, pady = 5)
     
-    image_0 = np.floor_divide(image_display,2)
-    template_dict["image_orig"] = ImageTk.PhotoImage(Image.fromarray(cv.cvtColor(image_0, cv.COLOR_BGR2RGB)).resize((image_x, image_y)))
-    #orig_image = Tk.Label(frame_2, image = template_dict["image_orig"])
-    image = Tk.Label(frame_2)
-    show("image_orig")
-    image.pack()
-    root.bind("<Button 1>", printcoords)
+    im_dict["image_0"] = np.floor_divide(im_dict["image_orig"],2)
+
+    global label_image
+    label_image = Tk.Label(frame_2)
+    show("image_0")
+    label_image.pack()
     
     #####################################################################
     # B u i l d   F r a m e   3   =   B u t t o n s
@@ -437,44 +456,41 @@ def build_config_and_template(image):
 
     button0 = Tk.Button(frame_3, 
                         text = "Select Template", 
-                        command = Select_click)
+                        command = select_click)
     button0.pack(padx = 10, pady = 5, side = 'left')
 
     button1 = Tk.Button(frame_3, text = "New Template", 
-                        command = New_click)
+                        command = new_click)
     button1.pack(padx = 10, pady = 5 , side = 'left')
 
     button2 = Tk.Button(frame_3, text = "Cancel", 
-                        command = Cancel_click)
+                        command = cancel_click)
     button2.pack(padx = 10, pady = 5 , side = 'left')
 
 
     root.attributes("-topmost", True)
-    root.protocol("WM_DELETE_WINDOW", Cancel_click)
+    root.protocol("WM_DELETE_WINDOW", cancel_click)
+    root.bind("<Button 1>", image_click)
     root.mainloop()
-
-
-
-
 
 def choose_template(image):
     def show(sub):
         global label_image
         label_image.config(image = template_dict[sub])
 
-    def Cancel_click():
+    def cancel_click():
         print("cancel clicked")
         root.destroy()
-        quit()
+        return "quit"
 
-    def New_click():
+    def new_click():
         # FIX build out what to do if the template does not exist
         global image
         print("new clicked")
         root.destroy()
         build_config_and_template(image)
 
-    def Select_click():
+    def select_click():
         global subject
         print("select clicked")
         FS.subject = selection.get()
@@ -554,19 +570,19 @@ def choose_template(image):
 
     button0 = Tk.Button(frame_4, 
                         text = "Select Template", 
-                        command = Select_click)
+                        command = select_click)
     button0.pack(padx = 10, pady = 5, side = 'left')
 
     button1 = Tk.Button(frame_4, text = "New Template", 
-                        command = New_click)
+                        command = new_click)
     button1.pack(padx = 10, pady = 5 , side = 'left')
 
     button2 = Tk.Button(frame_4, text = "Cancel", 
-                        command = Cancel_click)
+                        command = cancel_click)
     button2.pack(padx = 10, pady = 5 , side = 'left')
 
     root.attributes("-topmost", True)
-    root.protocol("WM_DELETE_WINDOW", Cancel_click)
+    root.protocol("WM_DELETE_WINDOW", cancel_click)
     root.mainloop()
 
 
@@ -596,7 +612,9 @@ if FS.ext == ".jpg":
 if FS.ext == ".gif" or FS.ext == ".jpg":
     x, y, z = image.shape
 
-    choose_template(image)
+    if choose_template(image) == "quit": 
+        print("I pressed quit")
+        quit()
     c = config_read(FS.config)
     scale = scale_build_RGB(c.scale)
 
