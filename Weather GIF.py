@@ -425,17 +425,19 @@ def build_template(image):
                     im_dict["scale_box"][2] = min(im_dict["scale_sta_y"],im_dict["scale_end_y"])-10
                     im_dict["scale_box"][3] = max(im_dict["scale_sta_y"],im_dict["scale_end_y"])+10
 
-            else:
-                im_dict["image_" + str(template_index + 1)] = im_dict["image_" + str(template_index)].copy()
 
             #####################################################################
             # I n d e x   =   2
-            if template_index == 2:
+            elif template_index == 2:
+                im_dict["image_3"] = im_dict["image_orig"].copy()
                 # set y1 for the top border
                 im_dict["crop_y1"] = int(np.floor(e.y * im_x / la_y))
                 
                 # cut out the upper part of the image
                 im_dict["image_3"][:im_dict["crop_y1"],:,:] = np.zeros((im_dict["crop_y1"],im_y,3))               
+
+            else:
+                im_dict["image_" + str(template_index + 1)] = im_dict["image_" + str(template_index)].copy()
 
             #####################################################################
             # I n d e x   =   3
@@ -462,7 +464,7 @@ def build_template(image):
                 im_dict["crop_x2"] = int(np.floor(e.x * im_y / la_x))
                 
                 # cut out the upper part of the image
-                im_dict["image_5"][:,im_dict["crop_x2"]:,:] = np.zeros((im_x,im_y - im_dict["crop_x2"],3))   
+                im_dict["image_6"][:,im_dict["crop_x2"]:,:] = np.zeros((im_x,im_y - im_dict["crop_x2"],3))   
 
             # put the scale back regardless
             im_dict["image_" + str(template_index + 1)][
@@ -472,7 +474,7 @@ def build_template(image):
                         im_dict["scale_box"][0]:im_dict["scale_box"][1], 
                         im_dict["scale_box"][2]:im_dict["scale_box"][3],:]
 
-            # display the highlighted image
+            # display the most recent image
             show("image_" + str(template_index + 1))
             print(e.x)
             print(e.y) 
@@ -480,6 +482,10 @@ def build_template(image):
             button_next.pack(padx = 10, pady = 5, side = 'left')
 
             return([e.x, e.y])
+
+    def allowalphanumeric(text):
+        if text == "": return True
+        return text.isalnum()
 
     def show(im_name):
         global label_image
@@ -503,7 +509,14 @@ def build_template(image):
             inst_text.config(text = inst_dict[template_index])
             print("template_index = " + str(template_index))
         else:
-            template_index
+            inst_title.pack_forget()
+            inst_text.pack_forget()
+            button_back.config(text = "Create New Template", command = newtemplate_click)
+            subject_prompt = Tk.Label(frame_0, bg = bg_color, text = "Name your template:")
+            subject_prompt.pack()
+            subject_name = Tk.Entry(frame_0,validate = "key", validatecommand=(root.register(allowalphanumeric),"%P"))
+            # subject_name = Tk.Entry(frame_0)
+            subject_name.pack()
         button_next.pack_forget()
 
     def back_click():
@@ -521,6 +534,9 @@ def build_template(image):
             root.destroy()
             choose_template(image)
 
+    def newtemplate_click():
+        # FIX: add in writing a new Template to the templates folder
+        root.destroy()
 
     #####################################################################
     # B u i l d   t h e   r o o t   U I
