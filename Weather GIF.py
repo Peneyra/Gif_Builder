@@ -363,8 +363,10 @@ def build_template(image):
     global template_index
     template_index = 0
 
-    inst_dict = {}
+    global c
+    c = Config_File
 
+    inst_dict = {}
     inst_dict[0] =  "Find the low end of the color scale on the image by clicking on the image."
     inst_dict[1] = "Find the high end of the color scale on the image by clicking on the image."
     inst_dict[2] =    "Find the top edge of the map by clicking on the image. Do not cut off the coordinates."
@@ -381,10 +383,12 @@ def build_template(image):
     # Click 4 = Left of map
     # Click 5 = Right of map
     def image_click(e):
-        if e.widget.winfo_parent() == '.!frame2':
-            global template_index
-            global la_x
-            global la_y
+        global template_index
+        global la_x
+        global la_y
+        global c
+        if e.widget.winfo_parent() == '.!frame2' and template_index < 6:
+ 
             print(e.widget.winfo_parent())
             print("x = " + str(e.x))
             print("y = " + str(e.y))
@@ -414,12 +418,14 @@ def build_template(image):
                 # decide whether the scale is horizontal or vertical
                 if abs(im_dict["scale_sta_x"] - abs(im_dict["scale_end_x"])) >= abs(im_dict["scale_sta_y"] - abs(im_dict["scale_end_y"])):
                     im_dict["scale_end_y"] = int(np.floor(np.average([im_dict["scale_sta_y"],im_dict["scale_end_y"]])))
+                    c.scale_x = im_dict["scale_end_y"]
                     im_dict["scale_box"][2] = im_dict["scale_end_y"] - 10
                     im_dict["scale_box"][3] = im_dict["scale_end_y"] + 10
                     im_dict["scale_box"][0] = min(im_dict["scale_sta_x"],im_dict["scale_end_x"])-10
                     im_dict["scale_box"][1] = max(im_dict["scale_sta_x"],im_dict["scale_end_x"])+10
                 else:
                     im_dict["scale_end_x"] = int(np.floor(np.average([im_dict["scale_sta_x"],im_dict["scale_end_x"]])))
+                    c.scale_y = im_dict["scale_end_x"]
                     im_dict["scale_box"][0] = im_dict["scale_end_x"] - 10
                     im_dict["scale_box"][1] = im_dict["scale_end_x"] + 10
                     im_dict["scale_box"][2] = min(im_dict["scale_sta_y"],im_dict["scale_end_y"])-10
@@ -430,11 +436,8 @@ def build_template(image):
             # I n d e x   =   2
             elif template_index == 2:
                 im_dict["image_3"] = im_dict["image_orig"].copy()
-                # set y1 for the top border
-                im_dict["crop_y1"] = int(np.floor(e.y * im_x / la_y))
-                
-                # cut out the upper part of the image
-                im_dict["image_3"][:im_dict["crop_y1"],:,:] = np.zeros((im_dict["crop_y1"],im_y,3))               
+                c.crop_y1 = int(np.floor(e.y * im_x / la_y))
+                im_dict["image_3"][:c.crop_y1,:,:] = np.zeros((c.crop_y1,im_y,3))
 
             else:
                 im_dict["image_" + str(template_index + 1)] = im_dict["image_" + str(template_index)].copy()
@@ -442,31 +445,22 @@ def build_template(image):
             #####################################################################
             # I n d e x   =   3
             if template_index == 3:
-                # set y2 for the bottom border
-                im_dict["crop_y2"] = int(np.floor(e.y * im_x / la_y))
-                
-                # cut out the upper part of the image
-                im_dict["image_4"][im_dict["crop_y2"]:,:,:] = np.zeros((im_x - im_dict["crop_y2"],im_y,3))        
+                c.crop_y2 = int(np.floor(e.y * im_x / la_y))
+                im_dict["image_4"][c.crop_y2:,:,:] = np.zeros((im_x - c.crop_y2,im_y,3))        
 
             #####################################################################
             # I n d e x   =   4
             if template_index == 4:
-                # set x1 for the left border
-                im_dict["crop_x1"] = int(np.floor(e.x * im_y / la_x))
-                
-                # cut out the upper part of the image
-                im_dict["image_5"][:,:im_dict["crop_x1"],:] = np.zeros((im_x,im_dict["crop_x1"],3))    
+                c.crop_x1 = int(np.floor(e.x * im_y / la_x))
+                im_dict["image_5"][:,:c.crop_x1,:] = np.zeros((im_x,c.crop_x1,3))
 
             #####################################################################
             # I n d e x   =   5
             if template_index == 5:
-                # set y2 for the bottom border
-                im_dict["crop_x2"] = int(np.floor(e.x * im_y / la_x))
-                
-                # cut out the upper part of the image
-                im_dict["image_6"][:,im_dict["crop_x2"]:,:] = np.zeros((im_x,im_y - im_dict["crop_x2"],3))   
+                c.crop_x2 = int(np.floor(e.x * im_y / la_x))
+                im_dict["image_6"][:,c.crop_x2:,:] = np.zeros((im_x,im_y - c.crop_x2,3))
 
-            # put the scale back regardless
+            # put the scale back
             im_dict["image_" + str(template_index + 1)][
                 im_dict["scale_box"][0]:im_dict["scale_box"][1], 
                 im_dict["scale_box"][2]:im_dict["scale_box"][3],:] = \
@@ -503,20 +497,71 @@ def build_template(image):
         print("next clicked")
         global template_index
 
+        #####################################################################
+        # A d v a n c e   y o u r   t e m p l a t e
         if template_index < 5: 
             template_index += 1
             if template_index == 2: show("image_orig")
             inst_text.config(text = inst_dict[template_index])
             print("template_index = " + str(template_index))
+
+        #####################################################################
+        # F i n i s h   y o u r   t e m p l a t e
         else:
+            global c
+            global scale
             inst_title.pack_forget()
             inst_text.pack_forget()
             button_back.config(text = "Create New Template", command = newtemplate_click)
             subject_prompt = Tk.Label(frame_0, bg = bg_color, text = "Name your template:")
             subject_prompt.pack()
-            subject_name = Tk.Entry(frame_0,validate = "key", validatecommand=(root.register(allowalphanumeric),"%P"))
-            # subject_name = Tk.Entry(frame_0)
+            subject_name = Tk.Entry(frame_0, validate = "key", validatecommand=(root.register(allowalphanumeric),"%P"))
             subject_name.pack()
+            image_template = im_dict["image_orig"].copy()
+            cv.imwrite(FS.orig_folder + "test0.jpg",image_template)
+
+            # crop the image template
+            image_template[:c.crop_y1, :,                   :] = np.uint8(255)
+            cv.imwrite(FS.orig_folder + "test1.jpg",image_template)
+            image_template[ c.crop_y2:,:,                   :] = np.uint8(255)
+            cv.imwrite(FS.orig_folder + "test2.jpg",image_template) 
+            image_template[:,                   :c.crop_x1, :] = np.uint8(255)
+            cv.imwrite(FS.orig_folder + "test3.jpg",image_template)
+            image_template[:,                    c.crop_x2:,:] = np.uint8(255)
+            cv.imwrite(FS.orig_folder + "test4.jpg",image_template)
+            
+            # build the scale
+            if c.scale_x != 0: 
+                c.scale = scale_build_int(im_dict["image_orig"][:,c.scale_x,:])
+            else: 
+                c.scale = scale_build_int(im_dict["image_orig"][c.scale_y,:,:])
+
+            scale = scale_build_RGB(c.scale)
+
+            # get a plot of the image
+            plot_template = plot_scale(image_template)
+            cv.imwrite(FS.orig_folder + "test_template.jpg",plot_template)
+            plot_mask = np.repeat(np.array(plot_smooth(plot_template,3) == 0).astype(int)[:,:,np.newaxis], 3, axis = 2)
+            cv.imwrite(FS.orig_folder + "test_mask.jpg",200*plot_mask.astype(int))
+
+            image_template = np.multiply(image_template, plot_mask)
+            cv.imwrite(FS.orig_folder + "test5.jpg",image_template)
+            image_template[:,:,2] = image_template[:,:,2] + 125 * plot_mask[:,:,2]
+            cv.imwrite(FS.orig_folder + "test6.jpg",image_template)
+            
+            # put the template back in
+            image_template[
+                im_dict["scale_box"][0]:im_dict["scale_box"][1], 
+                im_dict["scale_box"][2]:im_dict["scale_box"][3],:] = \
+                    im_dict["image_orig"][
+                        im_dict["scale_box"][0]:im_dict["scale_box"][1], 
+                        im_dict["scale_box"][2]:im_dict["scale_box"][3],:]
+            
+            im_dict["image_template_tk"] = ImageTk.PhotoImage(Image.fromarray(cv.cvtColor(image_template, cv.COLOR_BGR2RGB)).resize((la_x,la_y)))
+            label_image.config(image = im_dict["image_template_tk"])
+            cv.imwrite(FS.orig_folder + "test.jpg",image_template)
+            # FIX borders need to be white
+            # FIX put the legend back in
         button_next.pack_forget()
 
     def back_click():
@@ -695,10 +740,11 @@ def choose_template(image):
     frame_4 = Tk.Frame(root, bg = bg_color)
     frame_4.pack()
 
-    button0 = Tk.Button(frame_4, 
-                        text = "Select Template", 
-                        command = select_click)
-    button0.pack(padx = 10, pady = 5, side = 'left')
+    if not selection.get() == "":
+        button0 = Tk.Button(frame_4, 
+                            text = "Select Template", 
+                            command = select_click)
+        button0.pack(padx = 10, pady = 5, side = 'left')
 
     button1 = Tk.Button(frame_4, text = "New Template", 
                         command = new_click)
@@ -745,14 +791,9 @@ if FS.ext == ".gif" or FS.ext == ".jpg":
     c = config_read(FS.config)
     scale = scale_build_RGB(c.scale)
 
-
-
     # turn the image into a scalar plot and then smooth it over
     plot = plot_scale(image.copy())
     plot = plot_smooth(plot,100)
-
-
-
 
     ################################################################
     # r u n    D F T 
