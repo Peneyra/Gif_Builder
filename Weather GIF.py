@@ -165,7 +165,8 @@ def scale_build_RGB(scale_from_config):
 #####################################################################
 # C r e a t e   a   p l o t   o f   s c a l a r   v a l u e s 
 #####################################################################
-def plot_scale(arr):
+def plot_scale(image):
+    arr = image.copy()
     # crop out a part of the image (namely the legend)
     ##################################################
     # config file: x1 = left most x, x2 =  right most x
@@ -318,37 +319,6 @@ def c_str(i):
 def build_template(image):
     # FIX build a template and config file
     # FIX: this needs to move to "new template"
-    # if we are creating a config file and new template then save the template
-    # if not os.path.exists(FS.template):
-    #     plot_temp = plot_smooth(plot,2) != 0
-    #     image_template = image.copy()
-    #     for i in range(3): image_template[:,:,i] = np.multiply(image[:,:,i],np.invert(plot_temp).astype(int))
-    #     image_template[:,:,2] = image_template[:,:,2] + 125 * plot_temp.astype(int)
-
-    #     # crop out a part of the image (namely the legend)
-    #     ##################################################
-    #     # config file: x1 = left most x, x2 =  right most x
-    #     #              y1 =  top most y, y2 = bottom most y
-    #     # crop the image to remove everything except the legend
-    #     cv.imwrite(FS.template, image_template)
-    #     if c['crop_x1'][0] !=0:
-    #         if abs((c['scale_x'][0] - c['crop_x1'][0]) / x) > 0.1 or c['scale_x'] == [0]:
-    #             image_template[:,0:c['crop_x1'][0],:] = \
-    #                 255 * np.ones(image_template[:,0:c['crop_x1'][0],:].shape).astype(np.uint8)
-    #     if c['crop_x2'][0] !=0: 
-    #         if abs((c['scale_x'][0] - c['crop_x2'][0]) / x) > 0.1 or c['scale_x'] == [0]:
-    #             image_template[:,c['crop_x2'][0]:y,:] = \
-    #                 255 * np.ones(image_template[:,c['crop_x2'][0]:y,:].shape).astype(np.uint8)
-    #     if c['crop_y1'][0] !=0: 
-    #         if abs((c['scale_y'][0] - c['crop_y1'][0]) / y) > 0.1 or c['scale_y'] == [0]:
-    #             image_template[0:c['crop_y1'][0],:,:] = \
-    #                 255 * np.ones(image_template[0:c['crop_y1'][0],:,:].shape).astype(np.uint8)
-    #     if c['crop_y2'][0] !=0: 
-    #         if abs((c['scale_y'][0] - c['crop_y1'][0]) / y) > 0.1 or c['scale_y'] == [0]:
-    #             image_template[c['crop_y2'][0]:x,:,:] = \
-    #                 255 * np.ones(image_template[c['crop_y2'][0]:x,:,:].shape).astype(np.uint8)
-
-    #     cv.imwrite(FS.template, image_template)
 
 
     # populate a dictionary of template images
@@ -367,12 +337,12 @@ def build_template(image):
     c = Config_File
 
     inst_dict = {}
-    inst_dict[0] =  "Find the low end of the color scale on the image by clicking on the image."
-    inst_dict[1] = "Find the high end of the color scale on the image by clicking on the image."
-    inst_dict[2] =    "Find the top edge of the map by clicking on the image. Do not cut off the coordinates."
-    inst_dict[3] = "Find the bottom edge of the map by clicking on the image. Do not cut off the coordinates."
-    inst_dict[4] =   "Find the left edge of the map by clicking on the image. Do not cut off the coordinates."
-    inst_dict[5] =  "Find the right edge of the map by clicking on the image. Do not cut off the coordinates."
+    inst_dict[0] =  "Find the low end of the color scale on the image by clicking on the image. Click Next to continue"
+    inst_dict[1] = "Find the high end of the color scale on the image by clicking on the image. Make sure the whole color scale is highlighted. Press Back to reset. Click Next to continue."
+    inst_dict[2] =    "Find the top edge of the map by clicking on the image. Then press Next. Do not cut off the coordinates."
+    inst_dict[3] = "Find the bottom edge of the map by clicking on the image. Then press Next. Do not cut off the coordinates."
+    inst_dict[4] =   "Find the left edge of the map by clicking on the image. Then press Next. Do not cut off the coordinates."
+    inst_dict[5] =  "Find the right edge of the map by clicking on the image. Then press Next. Do not cut off the coordinates."
 
     #####################################################################
     # C l i c k   b e h a v i o r
@@ -394,6 +364,8 @@ def build_template(image):
             print("y = " + str(e.y))
 
             im_x, im_y = im_dict["image_0"].shape[:2]
+            r_highlight = 12
+
             #####################################################################
             # I n d e x   =   0
             # adjust behavior based on which template index we are on
@@ -404,7 +376,10 @@ def build_template(image):
                 im_dict["scale_sta_x"] = int(np.floor(e.y * im_x / la_y))
                 im_dict["scale_sta_y"] = int(np.floor(e.x * im_y / la_x))
 
-                im_dict["scale_box"] = [im_dict["scale_sta_x"]-10,im_dict["scale_sta_x"]+10,im_dict["scale_sta_y"]-10,im_dict["scale_sta_y"]+10]
+                im_dict["scale_box"] = [im_dict["scale_sta_x"] - r_highlight,
+                                        im_dict["scale_sta_x"] + r_highlight,
+                                        im_dict["scale_sta_y"] - r_highlight,
+                                        im_dict["scale_sta_y"] + r_highlight]
 
             #####################################################################
             # I n d e x   =   1
@@ -419,17 +394,17 @@ def build_template(image):
                 if abs(im_dict["scale_sta_x"] - abs(im_dict["scale_end_x"])) >= abs(im_dict["scale_sta_y"] - abs(im_dict["scale_end_y"])):
                     im_dict["scale_end_y"] = int(np.floor(np.average([im_dict["scale_sta_y"],im_dict["scale_end_y"]])))
                     c.scale_x = im_dict["scale_end_y"]
-                    im_dict["scale_box"][2] = im_dict["scale_end_y"] - 10
-                    im_dict["scale_box"][3] = im_dict["scale_end_y"] + 10
-                    im_dict["scale_box"][0] = min(im_dict["scale_sta_x"],im_dict["scale_end_x"])-10
-                    im_dict["scale_box"][1] = max(im_dict["scale_sta_x"],im_dict["scale_end_x"])+10
+                    im_dict["scale_box"][2] = im_dict["scale_end_y"] - r_highlight
+                    im_dict["scale_box"][3] = im_dict["scale_end_y"] + r_highlight
+                    im_dict["scale_box"][0] = min(im_dict["scale_sta_x"],im_dict["scale_end_x"]) - r_highlight
+                    im_dict["scale_box"][1] = max(im_dict["scale_sta_x"],im_dict["scale_end_x"]) + r_highlight
                 else:
                     im_dict["scale_end_x"] = int(np.floor(np.average([im_dict["scale_sta_x"],im_dict["scale_end_x"]])))
                     c.scale_y = im_dict["scale_end_x"]
-                    im_dict["scale_box"][0] = im_dict["scale_end_x"] - 10
-                    im_dict["scale_box"][1] = im_dict["scale_end_x"] + 10
-                    im_dict["scale_box"][2] = min(im_dict["scale_sta_y"],im_dict["scale_end_y"])-10
-                    im_dict["scale_box"][3] = max(im_dict["scale_sta_y"],im_dict["scale_end_y"])+10
+                    im_dict["scale_box"][0] = im_dict["scale_end_x"] - r_highlight
+                    im_dict["scale_box"][1] = im_dict["scale_end_x"] + r_highlight
+                    im_dict["scale_box"][2] = min(im_dict["scale_sta_y"],im_dict["scale_end_y"]) - r_highlight
+                    im_dict["scale_box"][3] = max(im_dict["scale_sta_y"],im_dict["scale_end_y"]) + r_highlight
 
 
             #####################################################################
@@ -496,6 +471,7 @@ def build_template(image):
     def next_click():
         print("next clicked")
         global template_index
+        global label_image
 
         #####################################################################
         # A d v a n c e   y o u r   t e m p l a t e
@@ -512,23 +488,20 @@ def build_template(image):
             global scale
             inst_title.pack_forget()
             inst_text.pack_forget()
+            button_next.pack_forget()
+
             button_back.config(text = "Create New Template", command = newtemplate_click)
             subject_prompt = Tk.Label(frame_0, bg = bg_color, text = "Name your template:")
             subject_prompt.pack()
             subject_name = Tk.Entry(frame_0, validate = "key", validatecommand=(root.register(allowalphanumeric),"%P"))
             subject_name.pack()
             image_template = im_dict["image_orig"].copy()
-            cv.imwrite(FS.orig_folder + "test0.jpg",image_template)
 
             # crop the image template
             image_template[:c.crop_y1, :,                   :] = np.uint8(255)
-            cv.imwrite(FS.orig_folder + "test1.jpg",image_template)
             image_template[ c.crop_y2:,:,                   :] = np.uint8(255)
-            cv.imwrite(FS.orig_folder + "test2.jpg",image_template) 
             image_template[:,                   :c.crop_x1, :] = np.uint8(255)
-            cv.imwrite(FS.orig_folder + "test3.jpg",image_template)
             image_template[:,                    c.crop_x2:,:] = np.uint8(255)
-            cv.imwrite(FS.orig_folder + "test4.jpg",image_template)
             
             # build the scale
             if c.scale_x != 0: 
@@ -540,14 +513,10 @@ def build_template(image):
 
             # get a plot of the image
             plot_template = plot_scale(image_template)
-            cv.imwrite(FS.orig_folder + "test_template.jpg",plot_template)
             plot_mask = np.repeat(np.array(plot_smooth(plot_template,3) == 0).astype(int)[:,:,np.newaxis], 3, axis = 2)
-            cv.imwrite(FS.orig_folder + "test_mask.jpg",200*plot_mask.astype(int))
 
-            image_template = np.multiply(image_template, plot_mask)
-            cv.imwrite(FS.orig_folder + "test5.jpg",image_template)
-            image_template[:,:,2] = image_template[:,:,2] + 125 * plot_mask[:,:,2]
-            cv.imwrite(FS.orig_folder + "test6.jpg",image_template)
+            image_template = np.multiply(image_template, plot_mask).astype(np.uint8)
+            image_template[:,:,2] = image_template[:,:,2] + 125 * np.array(plot_mask[:,:,2] == 0).astype(int)
             
             # put the template back in
             image_template[
@@ -556,12 +525,9 @@ def build_template(image):
                     im_dict["image_orig"][
                         im_dict["scale_box"][0]:im_dict["scale_box"][1], 
                         im_dict["scale_box"][2]:im_dict["scale_box"][3],:]
-            
-            im_dict["image_template_tk"] = ImageTk.PhotoImage(Image.fromarray(cv.cvtColor(image_template, cv.COLOR_BGR2RGB)).resize((la_x,la_y)))
-            label_image.config(image = im_dict["image_template_tk"])
-            cv.imwrite(FS.orig_folder + "test.jpg",image_template)
-            # FIX borders need to be white
-            # FIX put the legend back in
+
+            im_dict["image_template"] = image_template
+            show("image_template")
         button_next.pack_forget()
 
     def back_click():
