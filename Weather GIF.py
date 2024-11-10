@@ -109,6 +109,23 @@ class config_read():
                     scale_start = True
                 self.scale.append(int(config.split("scale = ")[1]))
 
+def config_write(c):
+    with open(FS.config, 'w') as file:
+        print("This config file is designed for use with the weather gif builing program.",   file = file)
+        print("It is a list of variables which the program uses to translate information ",   file = file)
+        print("onto a template. Each variable should be on its own line, with the variable ", file = file)
+        print("name on one side of an equal sign, and its integer value on the other with ",  file = file)
+        print("a single space on either side of the equal sign. The default values are ",     file = file)
+        print("zero.",                                                                        file = file)
+        print("crop_x2 " + str(c.crop_x1),                                                    file = file)
+        print("crop_y1 " + str(c.crop_x2),                                                    file = file)
+        print("crop_y2 " + str(c.crop_y1),                                                    file = file)
+        print("crop_x1 " + str(c.crop_y2),                                                    file = file)
+        print("scale_x " + str(c.scale_x),                                                    file = file)
+        print("scale_y " + str(c.scale_y),                                                    file = file)
+        for s in c.scale:
+            print("scale = " + str(s),                                                        file = file)
+
 #####################################################################
 # C h e c k   f i l e   t y p e
 #####################################################################
@@ -346,10 +363,10 @@ def build_template(image):
 
     #####################################################################
     # C l i c k   b e h a v i o r
-    # Click 0 = Low end of scale  image 0 -> 1
-    # Click 1 = High end of scale image 1 -> 2
-    # Click 2 = Top of map        image 2 -> 3
-    # Click 3 = Bottom of map     etc.
+    # Click 0 = Low end of scale  | image 0 -> 1
+    # Click 1 = High end of scale | image 1 -> 2
+    # Click 2 = Top of map        | image 2 -> 3
+    # Click 3 = Bottom of map     | etc.
     # Click 4 = Left of map
     # Click 5 = Right of map
     def image_click(e):
@@ -453,7 +470,9 @@ def build_template(image):
             return([e.x, e.y])
 
     def allowalphanumeric(text):
-        if text == "": return True
+        if text == "": 
+            im_dict["template_name"] = text
+            return True
         return text.isalnum()
 
     def show(im_name):
@@ -493,6 +512,8 @@ def build_template(image):
             button_back.config(text = "Create New Template", command = newtemplate_click)
             subject_prompt = Tk.Label(frame_0, bg = bg_color, text = "Name your template:")
             subject_prompt.pack()
+
+            global subject_name
             subject_name = Tk.Entry(frame_0, validate = "key", validatecommand=(root.register(allowalphanumeric),"%P"))
             subject_name.pack()
             image_template = im_dict["image_orig"].copy()
@@ -505,9 +526,11 @@ def build_template(image):
             
             # build the scale
             if c.scale_x != 0: 
-                c.scale = scale_build_int(im_dict["image_orig"][:,c.scale_x,:])
+                c.scale = scale_build_int(im_dict["image_orig"][im_dict["scale_box"][0]:im_dict["scale_box"][1],c.scale_x,:])
+                if im_dict["scale_sta_x"] > im_dict["scale_end_x"]: c.scale = c.scale[::-1]
             else: 
-                c.scale = scale_build_int(im_dict["image_orig"][c.scale_y,:,:])
+                c.scale = scale_build_int(im_dict["image_orig"][c.scale_y,im_dict["scale_box"][2]:im_dict["scale_box"][3],:])
+                if im_dict["scale_sta_y"] > im_dict["scale_end_y"]: c.scale = c.scale[::-1]
 
             scale = scale_build_RGB(c.scale)
 
@@ -546,8 +569,22 @@ def build_template(image):
             choose_template(image)
 
     def newtemplate_click():
+        global subject_name
         # FIX: add in writing a new Template to the templates folder
-        root.destroy()
+        if subject_name.get() != "":
+            FS.subject = subject_name.get()
+            FS.template = os.getcwd() + "/templates/" + FS.subject + "/" + FS.subject + "_template.jpg"
+            FS.config = os.getcwd() + "/templates/" + FS.subject + "/" + FS.subject + ".config"
+            if os.path.isfile(FS.template):
+                if askquestion_exists() == "no":
+                    return
+            cv.imwrite(FS.template,im_dict["image_template"])
+            config_write(c)
+            root.destroy()
+
+    def askquestion_exists():
+        answer = Tk.messagebox.askquestion("File Already Exists", "A template with this name already exists. Do you want to replace it?", icon = "error")
+        return answer
 
     #####################################################################
     # B u i l d   t h e   r o o t   U I
@@ -608,9 +645,6 @@ def build_template(image):
 
 
 
-
-
-
 def choose_template(image):
     def show(sub):
         global label_image
@@ -654,17 +688,13 @@ def choose_template(image):
     instructions_title = Tk.Label(frame_0, justify = "left", wraplength = image_x, 
                             font = ("Arial",16), bg = bg_color,
                             text = 
-                            "The name of your image file does not match a pre-" +
-                            "existing template.").pack(anchor = "w")
+                            "Choose a template.").pack(anchor = "w")
     instructions_text = Tk.Label(frame_0, justify = "left", wraplength = image_x,
                                 font = ("Arial", 12), bg = bg_color,
-                                text = "Either rename your file to match (e.g." +
-                                " LANT.gif), select from one of the templates" +
-                                " below, or create a new template. Note: if you" +
-                                " create a new template, no unit will be able to" +
-                                " use the template until they download the new" +
-                                " template and config file into their templates" + 
-                                " folder.").pack(anchor = "w")
+                                text = "If a template doesn't already exist, create " +
+                                "a new template. Note: units will not have access to " +
+                                "a new template until you upload a new template folder " +
+                                "and they subsequently download the new template folder.").pack(anchor = "w")
 
     #####################################################################
     # B u i l d   F r a m e   1   =   D r o p d o w n   M e n u
@@ -751,11 +781,10 @@ if FS.ext == ".jpg":
 if FS.ext == ".gif" or FS.ext == ".jpg":
     x, y, z = image.shape
 
-    if choose_template(image) == "quit": 
-        print("I pressed quit")
-        quit()
-    c = config_read(FS.config)
-    scale = scale_build_RGB(c.scale)
+    choose_template(image)
+
+    if not "c" in globals(): c = config_read(FS.config)
+    if not "scale" in globals(): scale = scale_build_RGB(c.scale)
 
     # turn the image into a scalar plot and then smooth it over
     plot = plot_scale(image.copy())
