@@ -189,10 +189,10 @@ def plot_scale(image):
     # config file: x1 = left most x, x2 =  right most x
     #              y1 =  top most y, y2 = bottom most y
     # crop the image to remove the legend
-    if c.crop_x1 !=0: arr[:,0:c.crop_x1,:    ] = np.zeros((x,  c.crop_x1,z))
-    if c.crop_x2 !=0: arr[:,  c.crop_x2:y,:  ] = np.zeros((x,y-c.crop_x2,z))
-    if c.crop_y1 !=0: arr[0:  c.crop_y1,:,:  ] = np.zeros((    c.crop_y1,y,z))
-    if c.crop_y2 !=0: arr[    c.crop_y2:x,:,:] = np.zeros((x-  c.crop_y2,y,z))
+    if c.crop_x1 !=0: arr[:c.crop_x1, :, :] = np.zeros(arr[:c.crop_x1, :, :].shape)
+    if c.crop_x2 !=0: arr[c.crop_x2:, :, :] = np.zeros(arr[c.crop_x2:, :, :].shape)
+    if c.crop_y1 !=0: arr[:, c.crop_y1:, :] = np.zeros(arr[:, c.crop_y1:, :].shape)
+    if c.crop_y2 !=0: arr[:, :c.crop_y2, :] = np.zeros(arr[:, :c.crop_y2, :].shape)
 
     # create a blank canvas and import RGB values for the scale
     plot_out = np.zeros((x, y)).astype(int)
@@ -225,6 +225,7 @@ def image_restore(plot,subject,scale):
     image = np.zeros((x,y,3)).astype(int)
     empty = [0, 0, 124]
     var = 50
+    cv.imwrite("./test_plot.jpg",plot)
 
     image_template = cv.imread('./templates/' + subject + '/' + subject + "_template.jpg")
 
@@ -234,11 +235,13 @@ def image_restore(plot,subject,scale):
     # change the scalar plot to an RGB image
     for i in range(len(scale))[1:]:
         im = np.zeros((x,y,3))
-        for j in range(3): im[:,:,j] = np.array(plot == i).astype(int) * scale[i, j]
+        for j in range(3):
+            im[:,:,j] = np.array(plot == i).astype(int) * scale[i, j]
         image = image + im
 
     for i in range(3): 
         image[:,:,i] = np.multiply(np.array(plot_bool).astype(int),image[:,:,i]) + np.multiply(np.array(~plot_bool).astype(int), image_template[:,:,i])
+        cv.imwrite("./test_"+str(i)+".jpg",image)
 
     # crop out a part of the image (namely the legend)
     ##################################################
@@ -246,10 +249,18 @@ def image_restore(plot,subject,scale):
     #              y1 = top most y,  y2 = bottom most y
 
     # crop the image to remove the legend
-    if c.crop_x1 !=0: image[:,0:c.crop_x1,    :] = image_template[:,0:c.crop_x1,    :].copy()
-    if c.crop_x2 !=0: image[:,  c.crop_x2:y,  :] = image_template[:,  c.crop_x2:y,  :].copy()
-    if c.crop_y1 !=0: image[0:  c.crop_y1,  :,:] = image_template[0:  c.crop_y1,  :,:].copy()
-    if c.crop_y2 !=0: image[    c.crop_y2:x,:,:] = image_template[    c.crop_y2:x,:,:].copy()
+    if c.crop_x1 !=0: image[c.crop_x1:,          :, :] = image_template[c.crop_x1:,          :, :].copy()
+    # cv.imwrite("./test_cropped1.jpg",image_template[c.crop_x1:,          :, :].copy())
+    # cv.imwrite("./test_crop1.jpg",image)
+    if c.crop_x2 !=0: image[:c.crop_x2,          :, :] = image_template[:c.crop_x2,          :, :].copy()
+    # cv.imwrite("./test_cropped2.jpg",image_template[:c.crop_x2,          :, :].copy())
+    # cv.imwrite("./test_crop2.jpg",image)
+    if c.crop_y1 !=0: image[:,          c.crop_y1:, :] = image_template[:,          c.crop_y1:, :].copy()
+    # cv.imwrite("./test_cropped3.jpg",image_template[:,          :c.crop_y1, :].copy())
+    # cv.imwrite("./test_crop3.jpg",image)
+    if c.crop_y2 !=0: image[:,          :c.crop_y2, :] = image_template[:,          :c.crop_y2, :].copy()
+    # cv.imwrite("./test_cropped4.jpg",image_template[:c.crop_y2, :,          :].copy())
+    # cv.imwrite("./test_crop4.jpg",image)
 
     return image
 
@@ -515,13 +526,13 @@ def build_template(image):
             image_template = im_dict["image_orig"].copy()
 
             # crop the image template
-            image_template[:c.crop_y1, :,                   :] = np.uint8(255)
-            image_template[ c.crop_y2:,:,                   :] = np.uint8(255)
-            image_template[:,                   :c.crop_x1, :] = np.uint8(255)
-            image_template[:,                    c.crop_x2:,:] = np.uint8(255)
+            image_template[:c.crop_y1,  :,          :] = np.uint8(255)
+            image_template[ c.crop_y2:, :,          :] = np.uint8(255)
+            image_template[:,           :c.crop_x1, :] = np.uint8(255)
+            image_template[:,           c.crop_x2:, :] = np.uint8(255)
             
             # build the scale
-            for delta in [-10,0,10]:
+            for delta in [-10,-5,0,5,10]:
                 if c.scale == []:
                     if c.scale_x != 0: 
                         c.scale = scale_build_int(im_dict["image_orig"][im_dict["scale_box"][0]:im_dict["scale_box"][1],delta + c.scale_x,:])
@@ -534,7 +545,7 @@ def build_template(image):
 
             # get a plot of the image
             plot_template = plot_scale(image_template)
-            plot_mask = np.repeat(np.array(plot_smooth(plot_template,3) == 0).astype(int)[:,:,np.newaxis], 3, axis = 2)
+            plot_mask = np.repeat(np.array(plot_smooth(plot_template,2) == 0).astype(int)[:,:,np.newaxis], 3, axis = 2)
 
             image_template = np.multiply(image_template, plot_mask).astype(np.uint8)
             image_template[:,:,2] = image_template[:,:,2] + 125 * np.array(plot_mask[:,:,2] == 0).astype(int)
@@ -804,7 +815,7 @@ if FS.ext == ".gif" or FS.ext == ".jpg":
     #################################################################
     # User defined: # DFT coefficients
     # number of terms will be ((n * 2) ^ 2) * 2
-    n = 10
+    n = 12
 
     # Remove higher frequency coefficients
     DFT[n:x-n,:,:] = np.zeros((x-2*n,y,2))
