@@ -257,7 +257,7 @@ def image_restore(plot,subject,scale):
 #####################################################################
 # C o n v e r t   b a s e   1 0   < - >   b a s e   6 2
 #####################################################################
-# function to compress integers [-990000000, 990000000] into 3 digits
+# function to compress integers [-990000000, 990000000] into 2 digits
 def c_int(i):
     ##################################################
     # User Defined: start of negative chr codes
@@ -334,10 +334,6 @@ def c_str(i):
 # G U I   f o r   t h e   s e n d e r   o f   t h e   g i f
 #####################################################################
 def build_template(image):
-    # FIX build a template and config file
-    # FIX: this needs to move to "new template"
-
-
     # populate a dictionary of template images
     im_dict = {}
     im_dict["image_orig"] = image.copy()
