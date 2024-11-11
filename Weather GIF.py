@@ -65,7 +65,8 @@ class msg_read:
                     n = int(m.split("/")[2])
                     self.n = n
                     self.max = int(m.split("/")[3])
-                    self.subject = m.split("/")[4]
+                    self.dtg = m.split("/")[4]
+                    self.subject = m.split("/")[5]
                     i, j, index = 0, 0, 0
                     i_s, j_s = [i,x-i-1], [j,y-j-1]
                     # initialize the DFT
@@ -225,7 +226,7 @@ def image_restore(plot,subject,scale):
     image = np.zeros((x,y,3)).astype(int)
     empty = [0, 0, 124]
     var = 50
-    cv.imwrite("./test_plot.jpg",plot)
+    # cv.imwrite("./test_plot.jpg",plot)
 
     image_template = cv.imread('./templates/' + subject + '/' + subject + "_template.jpg")
 
@@ -241,7 +242,7 @@ def image_restore(plot,subject,scale):
 
     for i in range(3): 
         image[:,:,i] = np.multiply(np.array(plot_bool).astype(int),image[:,:,i]) + np.multiply(np.array(~plot_bool).astype(int), image_template[:,:,i])
-        cv.imwrite("./test_"+str(i)+".jpg",image)
+        # cv.imwrite("./test_"+str(i)+".jpg",image)
 
     # crop out a part of the image (namely the legend)
     ##################################################
@@ -250,17 +251,22 @@ def image_restore(plot,subject,scale):
 
     # crop the image to remove the legend
     if c.crop_y1 !=0: image[:c.crop_y1, :, :] = image_template[:c.crop_y1, :, :].copy()
-    cv.imwrite("./test_cropped1.jpg",image_template[:c.crop_y1, :, :].copy())
-    cv.imwrite("./test_crop1.jpg",image)
+    # cv.imwrite("./test_cropped1.jpg",image_template[:c.crop_y1, :, :].copy())
+    # cv.imwrite("./test_crop1.jpg",image)
     if c.crop_y2 !=0: image[c.crop_y2:, :, :] = image_template[c.crop_y2:, :, :].copy()
-    cv.imwrite("./test_cropped2.jpg",image_template[c.crop_y2:, :, :].copy())
-    cv.imwrite("./test_crop2.jpg",image)
+    # cv.imwrite("./test_cropped2.jpg",image_template[c.crop_y2:, :, :].copy())
+    # cv.imwrite("./test_crop2.jpg",image)
     if c.crop_x1 !=0: image[:, :c.crop_x1, :] = image_template[:, :c.crop_x1, :].copy()
-    cv.imwrite("./test_cropped3.jpg",image_template[:, :c.crop_x1, :].copy())
-    cv.imwrite("./test_crop3.jpg",image)
+    # cv.imwrite("./test_cropped3.jpg",image_template[:, :c.crop_x1, :].copy())
+    # cv.imwrite("./test_crop3.jpg",image)
     if c.crop_x2 !=0: image[:, c.crop_x2:, :] = image_template[:, c.crop_x2:, :].copy()
-    cv.imwrite("./test_cropped4.jpg",image_template[:, c.crop_x2:, :].copy())
-    cv.imwrite("./test_crop4.jpg",image)
+    # cv.imwrite("./test_cropped4.jpg",image_template[:, c.crop_x2:, :].copy())
+    # cv.imwrite("./test_crop4.jpg",image)
+
+    y_coord = np.floor((c.crop_y2 + y)/2)
+
+    image = cv.putText(image, m.subject + " - " + m.dtg, (c.crop_x1, c.crop_y2 + 30), cv.FONT_HERSHEY_SIMPLEX,
+                       .5, (0,0,0), 2, cv.LINE_AA, False)
 
     return image
 
@@ -340,6 +346,9 @@ def c_str(i):
 
     return r
 
+
+def allowalphanumeric(text):
+    return text == "" or text.isalnum()
 
 #####################################################################
 # G U I   f o r   t h e   s e n d e r   o f   t h e   g i f
@@ -475,12 +484,6 @@ def build_template(image):
             button_next.pack(padx = 10, pady = 5, side = 'left')
 
             return([e.x, e.y])
-
-    def allowalphanumeric(text):
-        if text == "": 
-            im_dict["template_name"] = text
-            return True
-        return text.isalnum()
 
     def show(im_name):
         global label_image
@@ -773,6 +776,26 @@ def choose_template(image):
         root.protocol("WM_DELETE_WINDOW", cancel_click)
         root.mainloop()
 
+def get_dtg():
+    def dtg_click():
+        global dtg
+        if not "Z" in frame_1.get().upper():
+            Tk.messagebox.showerror("Input a DTG in Zulu time to proceed.","Missing DTG")
+        else:
+            dtg = frame_1.get()
+            root.destroy()
+
+    global dtg
+    root = Tk.Tk()
+    root.title = "Enter DTG"
+    frame_0 = Tk.Label(root, text = "Enter the date time group for which the image displays.")
+    frame_0.pack()
+    frame_1 = Tk.Entry(root, validate = "key", validatecommand = (root.register(allowalphanumeric), "%P"))
+    frame_1.pack()
+    frame_2 = Tk.Button(root, text = "Ok", command = dtg_click)
+    frame_2.pack()
+    root.attributes("-topmost", True)
+    root.mainloop()
 
 #####################################################################
 # S t a r t   o f   _ _ m a i n _ _
@@ -827,16 +850,7 @@ if FS.ext == ".gif" or FS.ext == ".jpg":
 
     message_file_path = FS.orig_folder + "/" + FS.subject + ".txt"
 
-    def dtg_click():
-
-    
-    root = Tk.Tk()
-    root.title = "Enter DTG"
-    frame_0 = Tk.Label(root, text = "Enter the date time group for which the image displays.")
-    frame_0.pack()
-    frame_1 = Tk.Entry(root)
-    frame_1.pack()
-    frame_2 = Tk.Button(root, text = "Ok", command = dtg_click)
+    get_dtg()
 
     with open(message_file_path,'w') as file:
         print("R XXXXXXZ MMM YY",                                                 file = file)
@@ -850,6 +864,7 @@ if FS.ext == ".gif" or FS.ext == ".jpg":
               str(y) + "/" + 
               str(n) + "/" + 
               str(int(np.max(plot))) + "/" + 
+              dtg + "/" +
               FS.subject + "/WXYZ//", file = file)
         S = ""
         for i in range(n):
