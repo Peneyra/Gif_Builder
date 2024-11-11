@@ -117,10 +117,10 @@ def config_write(c):
         print("name on one side of an equal sign, and its integer value on the other with ",  file = file)
         print("a single space on either side of the equal sign. The default values are ",     file = file)
         print("zero.",                                                                        file = file)
-        print("crop_x2 = " + str(c.crop_x1),                                                    file = file)
-        print("crop_y1 = " + str(c.crop_x2),                                                    file = file)
-        print("crop_y2 = " + str(c.crop_y1),                                                    file = file)
-        print("crop_x1 = " + str(c.crop_y2),                                                    file = file)
+        print("crop_x1 = " + str(c.crop_x1),                                                    file = file)
+        print("crop_y1 = " + str(c.crop_y1),                                                    file = file)
+        print("crop_x2 = " + str(c.crop_x2),                                                    file = file)
+        print("crop_y2 = " + str(c.crop_y2),                                                    file = file)
         print("scale_x = " + str(c.scale_x),                                                    file = file)
         print("scale_y = " + str(c.scale_y),                                                    file = file)
         for s in c.scale:
@@ -189,10 +189,10 @@ def plot_scale(image):
     # config file: x1 = left most x, x2 =  right most x
     #              y1 =  top most y, y2 = bottom most y
     # crop the image to remove the legend
-    if c.crop_x1 !=0: arr[:c.crop_x1, :, :] = np.zeros(arr[:c.crop_x1, :, :].shape)
-    if c.crop_x2 !=0: arr[c.crop_x2:, :, :] = np.zeros(arr[c.crop_x2:, :, :].shape)
-    if c.crop_y1 !=0: arr[:, c.crop_y1:, :] = np.zeros(arr[:, c.crop_y1:, :].shape)
-    if c.crop_y2 !=0: arr[:, :c.crop_y2, :] = np.zeros(arr[:, :c.crop_y2, :].shape)
+    if c.crop_y1 !=0: arr[:c.crop_y1, :, :] = np.zeros(arr[:c.crop_y1, :, :].shape)
+    if c.crop_y2 !=0: arr[c.crop_y2:, :, :] = np.zeros(arr[c.crop_y2:, :, :].shape)
+    if c.crop_x1 !=0: arr[:, :c.crop_x1, :] = np.zeros(arr[:, :c.crop_x1, :].shape)
+    if c.crop_x2 !=0: arr[:, c.crop_x2:, :] = np.zeros(arr[:, c.crop_x2:, :].shape)
 
     # create a blank canvas and import RGB values for the scale
     plot_out = np.zeros((x, y)).astype(int)
@@ -249,18 +249,18 @@ def image_restore(plot,subject,scale):
     #              y1 = top most y,  y2 = bottom most y
 
     # crop the image to remove the legend
-    if c.crop_x1 !=0: image[c.crop_x1:,          :, :] = image_template[c.crop_x1:,          :, :].copy()
-    # cv.imwrite("./test_cropped1.jpg",image_template[c.crop_x1:,          :, :].copy())
-    # cv.imwrite("./test_crop1.jpg",image)
-    if c.crop_x2 !=0: image[:c.crop_x2,          :, :] = image_template[:c.crop_x2,          :, :].copy()
-    # cv.imwrite("./test_cropped2.jpg",image_template[:c.crop_x2,          :, :].copy())
-    # cv.imwrite("./test_crop2.jpg",image)
-    if c.crop_y1 !=0: image[:,          c.crop_y1:, :] = image_template[:,          c.crop_y1:, :].copy()
-    # cv.imwrite("./test_cropped3.jpg",image_template[:,          :c.crop_y1, :].copy())
-    # cv.imwrite("./test_crop3.jpg",image)
-    if c.crop_y2 !=0: image[:,          :c.crop_y2, :] = image_template[:,          :c.crop_y2, :].copy()
-    # cv.imwrite("./test_cropped4.jpg",image_template[:c.crop_y2, :,          :].copy())
-    # cv.imwrite("./test_crop4.jpg",image)
+    if c.crop_y1 !=0: image[:c.crop_y1, :, :] = image_template[:c.crop_y1, :, :].copy()
+    cv.imwrite("./test_cropped1.jpg",image_template[:c.crop_y1, :, :].copy())
+    cv.imwrite("./test_crop1.jpg",image)
+    if c.crop_y2 !=0: image[c.crop_y2:, :, :] = image_template[c.crop_y2:, :, :].copy()
+    cv.imwrite("./test_cropped2.jpg",image_template[c.crop_y2:, :, :].copy())
+    cv.imwrite("./test_crop2.jpg",image)
+    if c.crop_x1 !=0: image[:, :c.crop_x1, :] = image_template[:, :c.crop_x1, :].copy()
+    cv.imwrite("./test_cropped3.jpg",image_template[:, :c.crop_x1, :].copy())
+    cv.imwrite("./test_crop3.jpg",image)
+    if c.crop_x2 !=0: image[:, c.crop_x2:, :] = image_template[:, c.crop_x2:, :].copy()
+    cv.imwrite("./test_cropped4.jpg",image_template[:, c.crop_x2:, :].copy())
+    cv.imwrite("./test_crop4.jpg",image)
 
     return image
 
@@ -526,10 +526,12 @@ def build_template(image):
             image_template = im_dict["image_orig"].copy()
 
             # crop the image template
-            image_template[:c.crop_y1,  :,          :] = np.uint8(255)
-            image_template[ c.crop_y2:, :,          :] = np.uint8(255)
-            image_template[:,           :c.crop_x1, :] = np.uint8(255)
-            image_template[:,           c.crop_x2:, :] = np.uint8(255)
+            image_template[:c.crop_y1, :, :] = np.uint8(255)
+            image_template[c.crop_y2:, :, :] = np.uint8(255)
+            image_template[:, :c.crop_x1, :] = np.uint8(255)
+            image_template[:, c.crop_x2:, :] = np.uint8(255)
+
+
             
             # build the scale
             for delta in [-10,-5,0,5,10]:
@@ -550,7 +552,7 @@ def build_template(image):
             image_template = np.multiply(image_template, plot_mask).astype(np.uint8)
             image_template[:,:,2] = image_template[:,:,2] + 125 * np.array(plot_mask[:,:,2] == 0).astype(int)
             
-            # put the template back in
+            # put the template color scale back in
             image_template[
                 im_dict["scale_box"][0]:im_dict["scale_box"][1], 
                 im_dict["scale_box"][2]:im_dict["scale_box"][3],:] = \
@@ -824,6 +826,17 @@ if FS.ext == ".gif" or FS.ext == ".jpg":
     # save the values of the DFT to a file
 
     message_file_path = FS.orig_folder + "/" + FS.subject + ".txt"
+
+    def dtg_click():
+
+    
+    root = Tk.Tk()
+    root.title = "Enter DTG"
+    frame_0 = Tk.Label(root, text = "Enter the date time group for which the image displays.")
+    frame_0.pack()
+    frame_1 = Tk.Entry(root)
+    frame_1.pack()
+    frame_2 = Tk.Button(root, text = "Ok", command = dtg_click)
 
     with open(message_file_path,'w') as file:
         print("R XXXXXXZ MMM YY",                                                 file = file)
