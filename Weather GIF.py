@@ -1,11 +1,8 @@
-from dis import Instruction
 import numpy as np
 import cv2 as cv
 import imageio
 import os
 import tkinter as Tk
-import sys
-from matplotlib import pyplot as plt
 from tkinter import messagebox
 from tkinter.filedialog import askopenfilename
 from PIL import ImageTk, Image
