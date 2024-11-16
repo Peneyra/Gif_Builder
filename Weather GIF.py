@@ -19,16 +19,20 @@ from PIL import ImageTk, Image
 # 8. Interpret build the scalar array into the original input image
 # 9. Overlay a standard image template over the top of the scalar array
 
-test_mode = True
+test_mode = False
 
 #####################################################################
 # B u i l d   C l a s s e s 
 #####################################################################
 # Start with the file and file path for everything you are doing
 class File_Structure:
+    def update(self, subject):
+        self.subject = subject
+        self.template = os.getcwd() + "/templates/" + subject + "/" + subject + "_template.jpg"
+        self.config = os.getcwd() + "/templates/" + subject + "/" + subject + ".config"
 
     # all relevant files saved as strings
-    def __init__(self,orig_path):
+    def __init__(self, orig_path):
         subject = orig_path.split('/')[-1][:-4]
         self.subject = subject
         self.ext = check_type(orig_path)
@@ -133,7 +137,7 @@ def config_write(c):
 # message
 def check_type(orig_path):
     # define valid file extensions
-    ext_good = ['.gif','.jpg','.txt','.msg']
+    ext_good = ['.gif','.jpg','.txt','.eml']
     if orig_path == "":
         quit()
     else:
@@ -588,9 +592,7 @@ def build_template(image):
     def newtemplate_click():
         global subject_name
         if subject_name.get() != "":
-            FS.subject = subject_name.get()
-            FS.template = os.getcwd() + "/templates/" + FS.subject + "/" + FS.subject + "_template.jpg"
-            FS.config = os.getcwd() + "/templates/" + FS.subject + "/" + FS.subject + ".config"
+            FS.update(subject_name.get())
             if os.path.isfile(FS.template):
                 if askquestion_exists() == "no":
                     return
@@ -682,9 +684,7 @@ def choose_template(image):
     def select_click():
         global subject
         print("select clicked")
-        FS.subject = selection.get()
-        FS.template = os.getcwd() + "/templates/" + selection.get() + "/" + selection.get() + "_template.jpg"
-        FS.config = os.getcwd() + "/templates/" + selection.get() + "/" + selection.get() + ".config"
+        FS.update(selection.get())
         root.destroy()
 
     # set your global variables
@@ -803,27 +803,25 @@ def get_dtg():
 #####################################################################
 # S t a r t   o f   _ _ m a i n _ _
 #####################################################################
-
 # open a file browser and save the file name as orig_path
 orig_path = askopenfilename()
-# file_path = 
 
 FS = File_Structure(orig_path)
 
 #####################################################################
 # i m a g e   - >   m e s s a g e
 #####################################################################
-if FS.ext == ".gif":
+if FS.ext.lower() == ".gif":
     gif = imageio.mimread(orig_path)
     image = [cv.cvtColor(img, cv.COLOR_RGB2BGR) for img in gif][0]
-if FS.ext == ".jpg":
+if FS.ext.lower() == ".jpg":
     image = cv.imread(orig_path)
 
 #####################################################################
 # i m a g e   - >   m e s s a g e
 #####################################################################
 # if we've defined an image, otherwise skip to except
-if FS.ext == ".gif" or FS.ext == ".jpg":
+if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
     x, y, z = image.shape
 
     choose_template(image)
@@ -883,20 +881,15 @@ if FS.ext == ".gif" or FS.ext == ".jpg":
             for m_t in message_template_outro.splitlines(): print(m_t, file = file)
     os.startfile(message_file_path)
 
-
 #####################################################################
 # m e s s a g e   - >   i m a g e
 #####################################################################
-elif FS.ext == ".txt":
+elif FS.ext.lower() == ".txt" or FS.ext.lower() == ".eml":
     with open(orig_path,'r') as file: msg = file.read()
     m = msg_read(msg)
     plot_idft = cv.idft(m.DFT)
 
-    # FIX this is sloppy.  Figure out how to update these without
-    # going through each one
-    FS.subject = m.subject
-    FS.template = os.getcwd() + "/templates/" + m.subject + "/" + m.subject + "_template.jpg"
-    FS.config = os.getcwd() + "/templates/" + m.subject + "/" + m.subject + ".config"
+    FS.update(m.subject)
     c = config_read(FS.config)
     scale = scale_build_RGB(c.scale)
 
