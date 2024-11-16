@@ -19,6 +19,8 @@ from PIL import ImageTk, Image
 # 8. Interpret build the scalar array into the original input image
 # 9. Overlay a standard image template over the top of the scalar array
 
+test_mode = True
+
 #####################################################################
 # B u i l d   C l a s s e s 
 #####################################################################
@@ -236,6 +238,8 @@ def image_restore(plot,subject,scale):
         for j in range(3):
             im[:,:,j] = np.array(plot == i).astype(int) * scale[i, j]
         image = image + im
+        if test_mode:
+            cv.imwrite("./test_restore_" + str(i) + ".jpg",image)
 
     for i in range(3): 
         image[:,:,i] = np.multiply(np.array(plot_bool).astype(int),image[:,:,i]) + np.multiply(np.array(~plot_bool).astype(int), image_template[:,:,i])
@@ -248,19 +252,21 @@ def image_restore(plot,subject,scale):
 
     # crop the image to remove the legend
     if c.crop_y1 !=0: image[:c.crop_y1, :, :] = image_template[:c.crop_y1, :, :].copy()
-    # cv.imwrite("./test_cropped1.jpg",image_template[:c.crop_y1, :, :].copy())
-    # cv.imwrite("./test_crop1.jpg",image)
+    if test_mode:
+        cv.imwrite("./test_cropped1.jpg",image_template[:c.crop_y1, :, :].copy())
+        cv.imwrite("./test_crop1.jpg",image)
     if c.crop_y2 !=0: image[c.crop_y2:, :, :] = image_template[c.crop_y2:, :, :].copy()
-    # cv.imwrite("./test_cropped2.jpg",image_template[c.crop_y2:, :, :].copy())
-    # cv.imwrite("./test_crop2.jpg",image)
+    if test_mode:
+        cv.imwrite("./test_cropped2.jpg",image_template[c.crop_y2:, :, :].copy())
+        cv.imwrite("./test_crop2.jpg",image)
     if c.crop_x1 !=0: image[:, :c.crop_x1, :] = image_template[:, :c.crop_x1, :].copy()
-    # cv.imwrite("./test_cropped3.jpg",image_template[:, :c.crop_x1, :].copy())
-    # cv.imwrite("./test_crop3.jpg",image)
+    if test_mode:
+        cv.imwrite("./test_cropped3.jpg",image_template[:, :c.crop_x1, :].copy())
+        cv.imwrite("./test_crop3.jpg",image)
     if c.crop_x2 !=0: image[:, c.crop_x2:, :] = image_template[:, c.crop_x2:, :].copy()
-    # cv.imwrite("./test_cropped4.jpg",image_template[:, c.crop_x2:, :].copy())
-    # cv.imwrite("./test_crop4.jpg",image)
-
-    y_coord = np.floor((c.crop_y2 + y)/2)
+    if test_mode:
+        cv.imwrite("./test_cropped4.jpg",image_template[:, c.crop_x2:, :].copy())
+        cv.imwrite("./test_crop4.jpg",image)
 
     image = cv.putText(image, m.subject + " - " + m.dtg, (c.crop_x1, c.crop_y2 + 30), cv.FONT_HERSHEY_SIMPLEX,
                        .5, (0,0,0), 2, cv.LINE_AA, False)
@@ -307,8 +313,9 @@ def c_int(i):
     elif r1_62 >= 10: r1 = chr(r1_62 + 65 - 10)
     else:             r1 = str(r1_62) 
 
-    # print(i)
-    # print(str(r) + " " + str(r0) + " " + str(r1))
+    if test_mode: 
+        print(i)
+        print(str(r) + " " + str(r0) + " " + str(r1))
 
     return str(r0) + str(r1)
 
@@ -388,10 +395,10 @@ def build_template(image):
         global la_y
         global c
         if e.widget.winfo_parent() == '.!frame2' and template_index < 6:
- 
-            print(e.widget.winfo_parent())
-            print("x = " + str(e.x))
-            print("y = " + str(e.y))
+            if test_mode:
+                print(e.widget.winfo_parent())
+                print("x = " + str(e.x))
+                print("y = " + str(e.y))
 
             im_x, im_y = im_dict["image_0"].shape[:2]
             r_highlight = 20
@@ -475,8 +482,7 @@ def build_template(image):
 
             # display the most recent image
             show("image_" + str(template_index + 1))
-            print(e.x)
-            print(e.y) 
+            if test_mode: print("you clicked on (x,y) = (" + print(e.x) + ", " + print(e.y) + ")")
 
             button_next.pack(padx = 10, pady = 5, side = 'left')
 
@@ -850,13 +856,11 @@ if FS.ext == ".gif" or FS.ext == ".jpg":
     get_dtg()
 
     with open(message_file_path,'w') as file:
-        print("R XXXXXXZ MMM YY",                                                 file = file)
-        print("FM COMSUBPAC PEARL HARBOR HI",                                     file = file)
-        print("TO SSBN PAC",                                                      file = file)
-        print("BT",                                                               file = file)
-        print("UNCLAS",                                                           file = file)
-        print("SUBJ/VLF WEATHER GIF FOR " + FS.subject.upper() + "//",            file = file)
-        print("RMKS/SEE INSTRUCTIONS ON CSP WEBSITE ON HOW TO USE THIS MESSAGE.", file = file)
+        if os.path.exists(FS.cwd + "/Message Template.txt"):
+            with open("Message Template.txt", "r") as file_r: message_template = file_r.read()
+            message_template_intro = message_template.split("<message>")[0]
+            message_template_outro = message_template.split("<message>")[1]
+            for m_t in message_template_intro.splitlines(): print(m_t, file = file)
         print(str(x) + "/" + 
               str(y) + "/" + 
               str(n) + "/" + 
@@ -875,9 +879,8 @@ if FS.ext == ".gif" or FS.ext == ".jpg":
                                 print(S,                                          file = file)
                                 S = ""
         print(S + "//",                                                           file = file)
-        print("BT",                                                               file = file)
-        print("#0001",                                                            file = file)
-        print("NNNN",                                                             file = file)
+        if os.path.exists(FS.cwd + "/Message Template.txt"):
+            for m_t in message_template_outro.splitlines(): print(m_t, file = file)
     os.startfile(message_file_path)
 
 
