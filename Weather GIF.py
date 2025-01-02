@@ -44,13 +44,10 @@ class File_Structure:
         self.orig_folder = '/'.join(orig_path.split("/")[:-1]) + '/'
 
 class Config_File:
-    crop_x1 = int(0)
-    crop_x2 = int(0)
-    crop_y1 = int(0)
-    crop_y2 = int(0)
-    scale_x = int(0)
-    scale_y = int(0)
-    scale = []
+    # initializes the values for the config file
+    def __init__(self):
+        self.crop_x1, self.crop_x2, self.crop_y1, self.crop_y2 = np.zeros(4).astype(int)
+        self.scale = []
 
 class msg_read:
     # input a message file and parse its contents
@@ -61,19 +58,14 @@ class msg_read:
             if header:
                 if "WXYZ" in m:
                     header = False
-                    x = int(m.split("/")[0])
-                    self.x = x
-                    y = int(m.split("/")[1])
-                    self.y = y
-                    n = int(m.split("/")[2])
-                    self.n = n
-                    self.max = int(m.split("/")[3])
+                    S = m.split("/")
+                    self.x, self.y, self.n, self.max = [int(k) for k in S[0:4]]
                     self.dtg = m.split("/")[4]
                     self.subject = m.split("/")[5]
                     i, j, index = 0, 0, 0
-                    i_s, j_s = [i,x-i-1], [j,y-j-1]
+                    i_s, j_s = [i,int(S[0])-i-1], [j,int(S[1])-j-1]
                     # initialize the DFT
-                    self.DFT = np.zeros((x,y,2))
+                    self.DFT = np.zeros((int(S[0]),int(S[1]),2))
             else:
                 n1 = 0
                 while n1 + 2 <= len(m):
@@ -86,11 +78,11 @@ class msg_read:
                         self.DFT[i_s[i1],j_s[j1],k1] = val
                         index += 1
                         if index == 8:
-                            j = (j + 1) % n
-                            j_s = [j,y-j-1]
+                            j = (j + 1) % int(S[2])
+                            j_s = [j,int(S[1])-j-1]
                             if j == 0:
                                 i = i + 1
-                                i_s = [i,x-i-1]
+                                i_s = [i,int(S[0])-i-1]
                             index = 0
                     else:
                         footer = True
@@ -121,12 +113,12 @@ def config_write(c):
         print("name on one side of an equal sign, and its integer value on the other with ",  file = file)
         print("a single space on either side of the equal sign. The default values are ",     file = file)
         print("zero.",                                                                        file = file)
-        print("crop_x1 = " + str(c.crop_x1),                                                    file = file)
-        print("crop_y1 = " + str(c.crop_y1),                                                    file = file)
-        print("crop_x2 = " + str(c.crop_x2),                                                    file = file)
-        print("crop_y2 = " + str(c.crop_y2),                                                    file = file)
-        print("scale_x = " + str(c.scale_x),                                                    file = file)
-        print("scale_y = " + str(c.scale_y),                                                    file = file)
+        print("crop_x1 = " + str(c.crop_x1),                                                  file = file)
+        print("crop_y1 = " + str(c.crop_y1),                                                  file = file)
+        print("crop_x2 = " + str(c.crop_x2),                                                  file = file)
+        print("crop_y2 = " + str(c.crop_y2),                                                  file = file)
+        print("scale_x = " + str(c.scale_x),                                                  file = file)
+        print("scale_y = " + str(c.scale_y),                                                  file = file)
         for s in c.scale:
             print("scale = " + str(s),                                                        file = file)
 
@@ -143,7 +135,6 @@ def check_type(orig_path):
     else:
         for e in ext_good:
             if orig_path[len(orig_path)-4:] == e: return e
-
     root = Tk.Tk()
     root.wm_withdraw()
     messagebox.showinfo(title="Wrong type of file", message="Please choose a .jpg, .gif, .txt, or .msg")
@@ -214,14 +205,22 @@ def plot_scale(image):
 def plot_smooth(arr,repeat):
     arr_out = np.copy(arr)
     for r in range(repeat):
-        arr_num = np.zeros(arr.shape)
-        arr_den = np.zeros(arr.shape)
-        arr_bol = arr_out == 0
-        for i_psa in [0,1]:
-            for j_psa in [-1,1]:
-                arr_num = arr_num + np.roll(arr_out,           j_psa,axis = i_psa)
-                arr_den = arr_den + np.roll(np.invert(arr_bol),j_psa,axis = i_psa)
-        arr_out = arr_out + np.multiply(np.divide(arr_num,arr_den,where = arr_den != 0),arr_bol)
+        arr_tmp = np.roll(np.roll(np.copy(arr_out), -1, axis = 0), -1, axis = 1).astype(np.float64)
+        arr_tmp[0, :] = np.zeros_like(arr_tmp[0, :])
+        arr_tmp[-1,:] = np.zeros_like(arr_tmp[-1,:])
+        arr_tmp[:, 0] = np.zeros_like(arr_tmp[:, 0])
+        arr_tmp[:,-1] = np.zeros_like(arr_tmp[:,-1])
+        arr_add = np.zeros_like(arr_out).astype(np.float64)
+        arr_cnt = np.zeros_like(arr_out).astype(np.float64)
+        for (i, j) in [(1,0),(1,0),(1,1),(1,1),(-1,0),(-1,0),(-1,1),(-1,1)]:
+            arr_tmp = np.roll(arr_tmp, i, axis = j)
+            arr_add = arr_add + arr_tmp
+            arr_cnt = arr_cnt + np.array(arr_tmp != 0).astype(type(arr_cnt[0,0]))
+        arr_add = np.divide(arr_add, arr_cnt, out = np.zeros_like(arr_add), where=arr_cnt!=0)
+        if test_mode: cv.imwrite('./test_add_' + str(r) + '.jpg', 10 * arr_add)
+        if test_mode: cv.imwrite('./test_cnt_' + str(r) + '.jpg', 10 * arr_cnt)
+        arr_out = arr_out + np.array(np.multiply(arr_add,arr_out == 0)).astype(np.uint8)
+        if test_mode: cv.imwrite('./test_' + str(r) + '.jpg', 10 * arr_out)
     return arr_out
 
 def image_restore(plot,subject,scale):
@@ -229,7 +228,7 @@ def image_restore(plot,subject,scale):
     image = np.zeros((x,y,3)).astype(int)
     empty = [0, 0, 124]
     var = 50
-    # cv.imwrite("./test_plot.jpg",plot)
+    if test_mode: cv.imwrite("./test_restore_plot.jpg", plot * (256 / np.max(plot)))
 
     image_template = cv.imread('./templates/' + subject + '/' + subject + "_template.jpg")
 
@@ -242,12 +241,11 @@ def image_restore(plot,subject,scale):
         for j in range(3):
             im[:,:,j] = np.array(plot == i).astype(int) * scale[i, j]
         image = image + im
-        if test_mode:
-            cv.imwrite("./test_restore_" + str(i) + ".jpg",image)
+        if test_mode: cv.imwrite("./test_restore_" + str(i) + ".jpg",image)
 
     for i in range(3): 
         image[:,:,i] = np.multiply(np.array(plot_bool).astype(int),image[:,:,i]) + np.multiply(np.array(~plot_bool).astype(int), image_template[:,:,i])
-        # cv.imwrite("./test_"+str(i)+".jpg",image)
+        if test_mode: cv.imwrite("./test_restore_f" + str(i) + ".jpg",image)
 
     # crop out a part of the image (namely the legend)
     ##################################################
@@ -257,20 +255,20 @@ def image_restore(plot,subject,scale):
     # crop the image to remove the legend
     if c.crop_y1 !=0: image[:c.crop_y1, :, :] = image_template[:c.crop_y1, :, :].copy()
     if test_mode:
-        cv.imwrite("./test_cropped1.jpg",image_template[:c.crop_y1, :, :].copy())
-        cv.imwrite("./test_crop1.jpg",image)
+        cv.imwrite("./test_restore_cropped1.jpg",image_template[:c.crop_y1, :, :].copy())
+        cv.imwrite("./test_restore_crop1.jpg",image)
     if c.crop_y2 !=0: image[c.crop_y2:, :, :] = image_template[c.crop_y2:, :, :].copy()
     if test_mode:
-        cv.imwrite("./test_cropped2.jpg",image_template[c.crop_y2:, :, :].copy())
-        cv.imwrite("./test_crop2.jpg",image)
+        cv.imwrite("./test_restore_cropped2.jpg",image_template[c.crop_y2:, :, :].copy())
+        cv.imwrite("./test_restore_crop2.jpg",image)
     if c.crop_x1 !=0: image[:, :c.crop_x1, :] = image_template[:, :c.crop_x1, :].copy()
     if test_mode:
-        cv.imwrite("./test_cropped3.jpg",image_template[:, :c.crop_x1, :].copy())
-        cv.imwrite("./test_crop3.jpg",image)
+        cv.imwrite("./test_restore_cropped3.jpg",image_template[:, :c.crop_x1, :].copy())
+        cv.imwrite("./test_restore_crop3.jpg",image)
     if c.crop_x2 !=0: image[:, c.crop_x2:, :] = image_template[:, c.crop_x2:, :].copy()
     if test_mode:
-        cv.imwrite("./test_cropped4.jpg",image_template[:, c.crop_x2:, :].copy())
-        cv.imwrite("./test_crop4.jpg",image)
+        cv.imwrite("./test_restore_cropped4.jpg",image_template[:, c.crop_x2:, :].copy())
+        cv.imwrite("./test_restore_crop4.jpg",image)
 
     image = cv.putText(image, m.subject + " - " + m.dtg, (c.crop_x1, c.crop_y2 + 30), cv.FONT_HERSHEY_SIMPLEX,
                        .5, (0,0,0), 2, cv.LINE_AA, False)
@@ -557,7 +555,7 @@ def build_template(image):
 
             # get a plot of the image
             plot_template = plot_scale(image_template)
-            plot_mask = np.repeat(np.array(plot_smooth(plot_template,2) == 0).astype(int)[:,:,np.newaxis], 3, axis = 2)
+            plot_mask = np.repeat(np.array(plot_smooth(plot_template,2,True) == 0).astype(int)[:,:,np.newaxis], 3, axis = 2)
 
             image_template = np.multiply(image_template, plot_mask).astype(np.uint8)
             image_template[:,:,2] = image_template[:,:,2] + 125 * np.array(plot_mask[:,:,2] == 0).astype(int)
@@ -831,21 +829,32 @@ if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
 
     # turn the image into a scalar plot and then smooth it over
     plot = plot_scale(image.copy())
-    plot = plot_smooth(plot,100)
+    if test_mode: cv.imwrite("./test_build_plot_raw.jpg", plot)
+    plot = plot_smooth(plot,20)
+    if test_mode: cv.imwrite("./test_build_plot_smooth.jpg", plot)
 
     ################################################################
     # r u n    D F T 
     ################################################################
     DFT = cv.dft(np.float32(plot),flags=cv.DFT_COMPLEX_OUTPUT)
+    if test_mode: 
+        IDFT = cv.idft(DFT)
+        IDFT = cv.magnitude(IDFT[:,:,0],IDFT[:,:,1])
+        cv.imwrite("./test_build_DFT_raw.jpg", IDFT * (256 / np.max(IDFT)))
 
     #################################################################
     # User defined: # DFT coefficients
     # number of terms will be ((n * 2) ^ 2) * 2
-    n = 12
+    n = 6
 
     # Remove higher frequency coefficients
     DFT[n:x-n,:,:] = np.zeros((x-2*n,y,2))
     DFT[:,n:y-n,:] = np.zeros((x,y-2*n,2))
+
+    if test_mode: 
+        IDFT = cv.idft(DFT)
+        IDFT = cv.magnitude(IDFT[:,:,0],IDFT[:,:,1])
+        cv.imwrite("./test_build_DFT_small.jpg", IDFT * (256 / np.max(IDFT)))
 
     # save the values of the DFT to a file
 
