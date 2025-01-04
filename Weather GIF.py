@@ -19,7 +19,7 @@ from PIL import ImageTk, Image
 # 8. Interpret build the scalar array into the original input image
 # 9. Overlay a standard image template over the top of the scalar array
 
-test_mode = False
+test_mode = True
 
 #####################################################################
 # B u i l d   C l a s s e s 
@@ -202,7 +202,7 @@ def plot_scale(image):
     return plot_out
 
 # function to smooth out the colors
-def plot_smooth(arr,repeat):
+def plot_smooth(arr,repeat,line):
     arr_out = np.copy(arr)
     for r in range(repeat):
         arr_tmp = np.roll(np.roll(np.copy(arr_out), -1, axis = 0), -1, axis = 1).astype(np.float64)
@@ -211,15 +211,25 @@ def plot_smooth(arr,repeat):
         arr_tmp[:, 0] = np.zeros_like(arr_tmp[:, 0])
         arr_tmp[:,-1] = np.zeros_like(arr_tmp[:,-1])
         arr_add = np.zeros_like(arr_out).astype(np.float64)
-        arr_cnt = np.zeros_like(arr_out).astype(np.float64)
+
+        if line: arr_cnt = np.zeros_like(arr_out).astype(np.float64)
+
         for (i, j) in [(1,0),(1,0),(1,1),(1,1),(-1,0),(-1,0),(-1,1),(-1,1)]:
             arr_tmp = np.roll(arr_tmp, i, axis = j)
             arr_add = arr_add + arr_tmp
-            arr_cnt = arr_cnt + np.array(arr_tmp != 0).astype(type(arr_cnt[0,0]))
-        arr_add = np.divide(arr_add, arr_cnt, out = np.zeros_like(arr_add), where=arr_cnt!=0)
+
+            if line: arr_cnt = arr_cnt + np.array(arr_tmp != 0).astype(type(arr_cnt[0,0]))
+
+        if line: 
+            arr_add = np.divide(arr_add, arr_cnt, out = np.zeros_like(arr_add), where=arr_cnt!=0)
+        else:
+            arr_add = arr_add / 8
+
         if test_mode: cv.imwrite('./test_add_' + str(r) + '.jpg', 10 * arr_add)
-        if test_mode: cv.imwrite('./test_cnt_' + str(r) + '.jpg', 10 * arr_cnt)
+        if test_mode and line: cv.imwrite('./test_cnt_' + str(r) + '.jpg', 10 * arr_cnt)
+
         arr_out = arr_out + np.array(np.multiply(arr_add,arr_out == 0)).astype(np.uint8)
+
         if test_mode: cv.imwrite('./test_' + str(r) + '.jpg', 10 * arr_out)
     return arr_out
 
@@ -830,7 +840,8 @@ if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
     # turn the image into a scalar plot and then smooth it over
     plot = plot_scale(image.copy())
     if test_mode: cv.imwrite("./test_build_plot_raw.jpg", plot)
-    plot = plot_smooth(plot,20)
+    plot = plot_smooth(plot,6,True)
+    plot = plot_smooth(plot,20,False)
     if test_mode: cv.imwrite("./test_build_plot_smooth.jpg", plot)
 
     ################################################################
@@ -839,13 +850,19 @@ if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
     DFT = cv.dft(np.float32(plot),flags=cv.DFT_COMPLEX_OUTPUT)
     if test_mode: 
         IDFT = cv.idft(DFT)
+        IDFT_scaled = np.copy(IDFT)
         IDFT = cv.magnitude(IDFT[:,:,0],IDFT[:,:,1])
+        IDFT_scaled = IDFT_scaled * (100000 / np.max(IDFT_scaled))
+        IDFT_scaled = np.log10(IDFT_scaled)
+        IDFT_scaled = 10 ** IDFT_scaled
+        IDFT_scaled = cv.magnitude(IDFT_scaled[:,:,0],IDFT_scaled[:,:,1])
         cv.imwrite("./test_build_DFT_raw.jpg", IDFT * (256 / np.max(IDFT)))
+        cv.imwrite("./test_build_DFT_scaled.jpg", IDFT_scaled * (256 / np.max(IDFT_scaled)))
 
     #################################################################
     # User defined: # DFT coefficients
     # number of terms will be ((n * 2) ^ 2) * 2
-    n = 6
+    n = 20
 
     # Remove higher frequency coefficients
     DFT[n:x-n,:,:] = np.zeros((x-2*n,y,2))
