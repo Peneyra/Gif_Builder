@@ -325,9 +325,9 @@ def c_int(i):
     elif r1_62 >= 10: r1 = chr(r1_62 + 65 - 10)
     else:             r1 = str(r1_62) 
 
-    if test_mode: 
-        print(i)
-        print(str(r) + " " + str(r0) + " " + str(r1))
+    #if test_mode: 
+        #print(i)
+        #print(str(r) + " " + str(r0) + " " + str(r1))
 
     return str(r0) + str(r1)
 
@@ -832,7 +832,10 @@ if FS.ext.lower() == ".jpg":
 if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
     x, y, z = image.shape
 
-    choose_template(image)
+    if test_mode:
+        True
+    else:
+        choose_template(image)
 
     if not "c" in globals(): c = config_read(FS.config)
     if not "scale" in globals(): scale = scale_build_RGB(c.scale)
@@ -841,43 +844,80 @@ if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
     plot = plot_scale(image.copy())
     if test_mode: cv.imwrite("./test_build_plot_raw.jpg", plot)
     plot = plot_smooth(plot,6,True)
-    plot = plot_smooth(plot,20,False)
+    plot = np.array(plot).astype(float)
+    # plot = plot_smooth(plot,100,False)
     if test_mode: cv.imwrite("./test_build_plot_smooth.jpg", plot)
+
+    # Experimental
+    # try replacing zeros with a lower level DFT restoration
+    n_smooth = 3
+    dft_smooth = cv.dft(np.float32(plot),flags=cv.DFT_COMPLEX_OUTPUT)
+    dft_smooth[n_smooth:x-n_smooth,:,:] = np.zeros((x-2*n_smooth,y,2))
+    dft_smooth[:,n_smooth:y-n_smooth,:] = np.zeros((x,y-2*n_smooth,2))
+    idft_smooth = cv.idft(dft_smooth)
+    idft_smooth = cv.magnitude(idft_smooth[:,:,0],idft_smooth[:,:,1])
+    idft_smooth = np.multiply(idft_smooth, np.array(plot == 0).astype(int))
+    idft_smooth = idft_smooth * (np.max(plot) / np.max(idft_smooth))
+    plot = idft_smooth + plot
+    # End experimental
 
     ################################################################
     # r u n    D F T 
     ################################################################
     DFT = cv.dft(np.float32(plot),flags=cv.DFT_COMPLEX_OUTPUT)
-    if test_mode: 
-        IDFT = cv.idft(DFT)
-        IDFT_scaled = np.copy(IDFT)
-        IDFT = cv.magnitude(IDFT[:,:,0],IDFT[:,:,1])
-        IDFT_scaled = IDFT_scaled * (100000 / np.max(IDFT_scaled))
-        IDFT_scaled = np.log10(IDFT_scaled)
-        IDFT_scaled = 10 ** IDFT_scaled
-        IDFT_scaled = cv.magnitude(IDFT_scaled[:,:,0],IDFT_scaled[:,:,1])
-        cv.imwrite("./test_build_DFT_raw.jpg", IDFT * (256 / np.max(IDFT)))
-        cv.imwrite("./test_build_DFT_scaled.jpg", IDFT_scaled * (256 / np.max(IDFT_scaled)))
 
     #################################################################
     # User defined: # DFT coefficients
     # number of terms will be ((n * 2) ^ 2) * 2
-    n = 20
+    n = 40
 
     # Remove higher frequency coefficients
-    DFT[n:x-n,:,:] = np.zeros((x-2*n,y,2))
-    DFT[:,n:y-n,:] = np.zeros((x,y-2*n,2))
+    DFT[n:x-n,:,:] = np.zeros_like(DFT[n:x-n,:,:])
+    DFT[:,n:y-n,:] = np.zeros_like(DFT[:,n:y-n,:])
 
+    # in test mode: build an image as a visual representation 
+    # of the DFT coefficients
+    if test_mode:
+        dft_image_re = np.zeros((2*n + 1, 2*n + 1))
+        dft_image_im = np.zeros((2*n + 1, 2*n + 1))
+
+        dft_image_re[   :n,   :n] = DFT[-n: ,-n: ,0]
+        dft_image_re[n+1: ,   :n] = DFT[  :n,-n: ,0]
+        dft_image_re[   :n,n+1: ] = DFT[-n: ,  :n,0]
+        dft_image_re[n+1: ,n+1: ] = DFT[  :n,  :n,0]
+
+        dft_image_im[   :n,   :n] = DFT[-n: ,-n: ,1]
+        dft_image_im[n+1: ,   :n] = DFT[  :n,-n: ,1]
+        dft_image_im[   :n,n+1: ] = DFT[-n: ,  :n,1]
+        dft_image_im[n+1: ,n+1: ] = DFT[  :n,  :n,1]
+
+        cv.imwrite("./test_build_DFT_image_re.jpg", dft_image_re * (256 / np.max(dft_image_re)))
+        cv.imwrite("./test_build_DFT_image_im.jpg", dft_image_im * (256 / np.max(dft_image_im)))
+        
+
+    # in test mode: calculate the RMS of the difference between
+    # the input and the output
     if test_mode: 
         IDFT = cv.idft(DFT)
         IDFT = cv.magnitude(IDFT[:,:,0],IDFT[:,:,1])
+        IDFT = IDFT * (np.max(plot) / np.max(IDFT))
         cv.imwrite("./test_build_DFT_small.jpg", IDFT * (256 / np.max(IDFT)))
+        diff = (plot - IDFT) ** 2
+        RMS = np.sqrt(np.sum(diff))
+        print("##################################")
+        print("# n_smooth = " + str(n_smooth))
+        print("# n = " + str(n))
+        print("# RMS = " + str(RMS))
+        
 
     # save the values of the DFT to a file
 
     message_file_path = FS.orig_folder + "/" + FS.subject + ".txt"
 
-    get_dtg()
+    if test_mode:
+        dtg = "000000ZJAN25"
+    else:
+        get_dtg()
 
     with open(message_file_path,'w') as file:
         if os.path.exists(FS.cwd + "/Message Template.txt"):
