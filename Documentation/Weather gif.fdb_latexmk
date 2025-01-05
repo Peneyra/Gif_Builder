@@ -1,8 +1,8 @@
 # Fdb version 4
-["pdflatex"] 1733458602.34957 "c:/python/projects/git/Gif_Builder/Documentation/Weather gif.tex" "Weather gif.pdf" "Weather gif" 1733458604.80845 0
-  "Weather gif.aux" 1733458604 282 0a2452a637ac063d41a872b2765b0da4 "pdflatex"
-  "Weather gif.tex" 1733458598 3089 802acb3e52b8036c44937de3503506a9 ""
-  "c:/python/projects/git/Gif_Builder/Documentation/Weather gif.tex" 1733458598 3089 802acb3e52b8036c44937de3503506a9 ""
+["pdflatex"] 1736035061.72114 "c:/python/projects/git/Gif_Builder/Documentation/Weather gif.tex" "Weather gif.pdf" "Weather gif" 1736035066.51275 0
+  "Weather gif.aux" 1736035066 1181 705fab0d5a522e66177080b3c6a11c55 "pdflatex"
+  "Weather gif.tex" 1736035045 3740 706dc1aa7a3d4c70562055eb1b1f1a6d ""
+  "c:/python/projects/git/Gif_Builder/Documentation/Weather gif.tex" 1736035045 3740 706dc1aa7a3d4c70562055eb1b1f1a6d ""
   "c:/texlive/2024/texmf-dist/fonts/map/fontname/texfonts.map" 1733373055 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "c:/texlive/2024/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex7.tfm" 1733370127 1004 54797486969f23fa377b128694d548df ""
   "c:/texlive/2024/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex8.tfm" 1733370127 988 bdf658c3bfc2d96d3c8b02cfc1c94c20 ""
@@ -50,6 +50,7 @@
   "c:/texlive/2024/texmf-dist/tex/latex/base/article.cls" 1733374051 20144 d7d3a15c7efd9458741458961c8a96e7 ""
   "c:/texlive/2024/texmf-dist/tex/latex/base/inputenc.sty" 1733374051 5048 7ebf0f2edf1ef6783e8fe2201a95d0e8 ""
   "c:/texlive/2024/texmf-dist/tex/latex/base/size10.clo" 1733374051 8448 bd43e47d84d3704b7eabd59a92e43bf1 ""
+  "c:/texlive/2024/texmf-dist/tex/latex/comment/comment.sty" 1733371694 10197 204f75d5d8d88aa345a8c402e879e63b ""
   "c:/texlive/2024/texmf-dist/tex/latex/epstopdf-pkg/epstopdf-base.sty" 1733372672 13886 d1306dcf79a944f6988e688c1785f9ce ""
   "c:/texlive/2024/texmf-dist/tex/latex/fancyhdr/fancyhdr.sty" 1733372844 18783 ca1f9ad6a93781d2dab27faf4529e23a ""
   "c:/texlive/2024/texmf-dist/tex/latex/geometry/geometry.sty" 1733373204 41601 9cf6c5257b1bc7af01a58859749dd37a ""
