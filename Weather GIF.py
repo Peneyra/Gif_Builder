@@ -7,6 +7,23 @@ from tkinter import messagebox
 from tkinter.filedialog import askopenfilename
 from PIL import ImageTk, Image
 
+# Next steps:
+# 1. Figure out if DFT[0,0,0] is always the max
+# 2. Implement the 3 group method
+# 3. the message will be in chunks.  7 lines of 60 char broken up
+#    into groups of 4. This gives 28 group/decade combos avail
+#       Group X:   300 -> 1000
+#       Group X: -1000 -> -300
+#       Group X:   100 -> 300
+#       Group X:  -300 -> -100
+#       Group X:    30 -> 100
+#       Group X:  -100 -> -30
+#    where X is 1 to 5.
+# 4. Group 1: (0 1), (0 2), (0 3), (0 4), (1 1), (1 2)
+#    Group 2: (0 5), (0 6), (1 3), (1 4), (2 2), (2 3)
+#    Group 3: (0 7), (0 8), (1 5), (1 6), (2 4), (3 3)
+#    Group 4: (0 9), (0 10), (0 11), (1 7), (2 5)
+#    Group 5: (0 12), (0 13), (1 8), (2 6), (3 4)
 
 # The goal for this progam is to:
 # 1. Read an input image
@@ -844,21 +861,22 @@ if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
     plot = plot_scale(image.copy())
     if test_mode: cv.imwrite("./test_build_plot_raw.jpg", plot)
     plot = plot_smooth(plot,6,True)
+    plot = plot_smooth(plot,20,False)
     plot = np.array(plot).astype(float)
     # plot = plot_smooth(plot,100,False)
     if test_mode: cv.imwrite("./test_build_plot_smooth.jpg", plot)
 
     # Experimental
     # try replacing zeros with a lower level DFT restoration
-    n_smooth = 3
-    dft_smooth = cv.dft(np.float32(plot),flags=cv.DFT_COMPLEX_OUTPUT)
-    dft_smooth[n_smooth:x-n_smooth,:,:] = np.zeros((x-2*n_smooth,y,2))
-    dft_smooth[:,n_smooth:y-n_smooth,:] = np.zeros((x,y-2*n_smooth,2))
-    idft_smooth = cv.idft(dft_smooth)
-    idft_smooth = cv.magnitude(idft_smooth[:,:,0],idft_smooth[:,:,1])
-    idft_smooth = np.multiply(idft_smooth, np.array(plot == 0).astype(int))
-    idft_smooth = idft_smooth * (np.max(plot) / np.max(idft_smooth))
-    plot = idft_smooth + plot
+    # n_smooth = 3
+    # dft_smooth = cv.dft(np.float32(plot),flags=cv.DFT_COMPLEX_OUTPUT)
+    # dft_smooth[n_smooth:x-n_smooth,:,:] = np.zeros((x-2*n_smooth,y,2))
+    # dft_smooth[:,n_smooth:y-n_smooth,:] = np.zeros((x,y-2*n_smooth,2))
+    # idft_smooth = cv.idft(dft_smooth)
+    # idft_smooth = cv.magnitude(idft_smooth[:,:,0],idft_smooth[:,:,1])
+    # idft_smooth = np.multiply(idft_smooth, np.array(plot == 0).astype(int))
+    # idft_smooth = idft_smooth * (np.max(plot) / np.max(idft_smooth))
+    # plot = idft_smooth + plot
     # End experimental
 
     ################################################################
@@ -866,10 +884,45 @@ if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
     ################################################################
     DFT = cv.dft(np.float32(plot),flags=cv.DFT_COMPLEX_OUTPUT)
 
+    if test_mode: 
+        IDFT = cv.idft(DFT)
+        IDFT = cv.magnitude(IDFT[:,:,0],IDFT[:,:,1])
+        IDFT = IDFT * (np.max(plot) / np.max(IDFT))
+        cv.imwrite("./test_build_DFT_full.jpg", IDFT * (256 / np.max(IDFT)))
+        diff = ((plot - IDFT) ** 2) / len(plot.flatten())
+        RMS = np.sqrt(np.sum(diff))
+        print("##################################")
+        print('# Full DFT')
+        print("# RMS = " + str(RMS))
+
+    # Extract the highest valued coefficients out of DFT and
+    # put them into a variable DFT_out
+    DFT_copy = DFT.copy()
+    DFT_out = np.zeros_like(DFT)
+    n_dummy = 200
+
+    cv.imwrite("./test_build_DFT_image.jpg", cv.magnitude(DFT[:,:,0],DFT[:,:,1]) * (256 / np.max(cv.magnitude(DFT[:,:,0],DFT[:,:,1]))))
+    for dummy in range(n_dummy):
+        x_dummy = int(0)
+        y_dummy = int(0)
+        z_dummy = int(0)
+        t_dummy = int(np.argmax(np.abs(DFT_copy)))
+        #print("t_dummy = " + str(t_dummy) + " with max " + str(DFT.flatten()[t_dummy]))
+        z_dummy = t_dummy % 2
+        t_dummy = int((t_dummy - z_dummy) / 2)
+        y_dummy = t_dummy % y
+        t_dummy = int((t_dummy - y_dummy) / y)
+        x_dummy = t_dummy % x
+        #print("placing " + str(DFT[x_dummy,y_dummy,z_dummy]) + " at")
+        #print("[" + str(x_dummy) + "," + str(y_dummy) + "," + str(z_dummy) + "]")
+        DFT_out[x_dummy,y_dummy,z_dummy] = DFT_copy[x_dummy,y_dummy,z_dummy]
+        DFT_copy[x_dummy,y_dummy,z_dummy] = 0
+
+
     #################################################################
     # User defined: # DFT coefficients
     # number of terms will be ((n * 2) ^ 2) * 2
-    n = 40
+    n = 10
 
     # Remove higher frequency coefficients
     DFT[n:x-n,:,:] = np.zeros_like(DFT[n:x-n,:,:])
@@ -877,35 +930,44 @@ if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
 
     # in test mode: build an image as a visual representation 
     # of the DFT coefficients
-    if test_mode:
-        dft_image_re = np.zeros((2*n + 1, 2*n + 1))
-        dft_image_im = np.zeros((2*n + 1, 2*n + 1))
+    # if test_mode:
+    #     dft_image_re = np.zeros((2*n + 1, 2*n + 1))
+    #     dft_image_im = np.zeros((2*n + 1, 2*n + 1))
 
-        dft_image_re[   :n,   :n] = DFT[-n: ,-n: ,0]
-        dft_image_re[n+1: ,   :n] = DFT[  :n,-n: ,0]
-        dft_image_re[   :n,n+1: ] = DFT[-n: ,  :n,0]
-        dft_image_re[n+1: ,n+1: ] = DFT[  :n,  :n,0]
+    #     dft_image_re[   :n,   :n] = DFT[-n: ,-n: ,0]
+    #     dft_image_re[n+1: ,   :n] = DFT[  :n,-n: ,0]
+    #     dft_image_re[   :n,n+1: ] = DFT[-n: ,  :n,0]
+    #     dft_image_re[n+1: ,n+1: ] = DFT[  :n,  :n,0]
 
-        dft_image_im[   :n,   :n] = DFT[-n: ,-n: ,1]
-        dft_image_im[n+1: ,   :n] = DFT[  :n,-n: ,1]
-        dft_image_im[   :n,n+1: ] = DFT[-n: ,  :n,1]
-        dft_image_im[n+1: ,n+1: ] = DFT[  :n,  :n,1]
+    #     dft_image_im[   :n,   :n] = DFT[-n: ,-n: ,1]
+    #     dft_image_im[n+1: ,   :n] = DFT[  :n,-n: ,1]
+    #     dft_image_im[   :n,n+1: ] = DFT[-n: ,  :n,1]
+    #     dft_image_im[n+1: ,n+1: ] = DFT[  :n,  :n,1]
 
-        cv.imwrite("./test_build_DFT_image_re.jpg", dft_image_re * (256 / np.max(dft_image_re)))
-        cv.imwrite("./test_build_DFT_image_im.jpg", dft_image_im * (256 / np.max(dft_image_im)))
-        
+    #     cv.imwrite("./test_build_DFT_image_re.jpg", dft_image_re * (256 / np.max(dft_image_re)))
+    #     cv.imwrite("./test_build_DFT_image_im.jpg", dft_image_im * (256 / np.max(dft_image_im)))
+    cv.imwrite("./test_build_DFT_out_image.jpg", cv.magnitude(DFT_out[:,:,0],DFT_out[:,:,1]) * (256 / np.max(cv.magnitude(DFT_out[:,:,0],DFT_out[:,:,1]))))
+    cv.imwrite("./test_build_DFT_out_bool_re.jpg", 256 * (DFT_out[:,:,0] != 0).astype(int))
+    cv.imwrite("./test_build_DFT_out_bool_im.jpg", 256 * (DFT_out[:,:,1] != 0).astype(int))
+    dft_out_bool = DFT_out.copy()
+    dft_out_bool[DFT_out > 0] = 1
+    dft_out_bool[DFT_out < 0] = -1
+    idft_out_bool = cv.idft(dft_out_bool)
+    idft_out_bool = cv.magnitude(idft_out_bool[:,:,0],idft_out_bool[:,:,1])
+    idft_out_bool = np.array(IDFT * (np.max(plot) / np.max(idft_out_bool))).astype(int)
+    cv.imwrite("./test_build_DFT_bool.jpg", idft_out_bool * (256 / np.max(idft_out_bool)))
 
     # in test mode: calculate the RMS of the difference between
     # the input and the output
     if test_mode: 
-        IDFT = cv.idft(DFT)
+        IDFT = cv.idft(DFT_out)
         IDFT = cv.magnitude(IDFT[:,:,0],IDFT[:,:,1])
-        IDFT = IDFT * (np.max(plot) / np.max(IDFT))
+        IDFT = np.array(IDFT * (np.max(plot) / np.max(IDFT))).astype(int)
+        IDFT = np.multiply(IDFT, np.array(plot != 0).astype(int))
         cv.imwrite("./test_build_DFT_small.jpg", IDFT * (256 / np.max(IDFT)))
-        diff = (plot - IDFT) ** 2
+        diff = ((plot - IDFT) ** 2) / len(plot.flatten())
         RMS = np.sqrt(np.sum(diff))
         print("##################################")
-        print("# n_smooth = " + str(n_smooth))
         print("# n = " + str(n))
         print("# RMS = " + str(RMS))
         
