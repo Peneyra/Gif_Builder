@@ -46,7 +46,7 @@ class File_Structure:
 class Config_File:
     # initializes the values for the config file
     def __init__(self):
-        self.crop_x1, self.crop_x2, self.crop_y1, self.crop_y2 = np.zeros(4).astype(int)
+        self.crop_x1, self.crop_x2, self.crop_y1, self.crop_y2, self.scale_x, self.scale_y = np.zeros(6).astype(int)
         self.scale = []
 
 class msg_read:
@@ -362,6 +362,61 @@ def c_str(i):
 
     return r
 
+# Code a list of addresses and order for the coefficients we care about.
+# The maximum coefficients fall inside the y = 1/x graph.  To obtain the
+# correct number of coefficients (50 coefficents to make a 400 character
+# long message) I used all whole blocks inside of y = 17 / x graph.
+def get_addresses():
+    r = np.zeros((48,2))
+    r[0, :] = [0, 0]
+    r[1, :] = [0, 1]
+    r[2, :] = [0, 2]
+    r[3, :] = [0, 3]
+    r[4, :] = [0, 4]
+    r[5, :] = [0, 5]
+    r[6, :] = [0, 6]
+    r[7, :] = [0, 7]
+    r[8, :] = [0, 8]
+    r[9, :] = [0, 9]
+    r[10,:] = [0,10]
+    r[11,:] = [0,11]
+    r[12,:] = [0,12]
+    r[13,:] = [0,13]
+    r[14,:] = [0,14]
+    r[15,:] = [1, 0]
+    r[16,:] = [1, 1]
+    r[17,:] = [1, 2]
+    r[18,:] = [1, 3]
+    r[19,:] = [1, 4]
+    r[20,:] = [1, 5]
+    r[21,:] = [1, 6]
+    r[22,:] = [1, 7]
+    r[23,:] = [2, 0]
+    r[24,:] = [2, 1]
+    r[25,:] = [2, 2]
+    r[26,:] = [2, 3]
+    r[27,:] = [2, 4]
+    r[28,:] = [3, 0]
+    r[29,:] = [3, 1]
+    r[30,:] = [3, 2]
+    r[31,:] = [3, 3]
+    r[32,:] = [4, 0]
+    r[33,:] = [4, 1]
+    r[34,:] = [4, 2]
+    r[35,:] = [5, 0]
+    r[36,:] = [5, 1]
+    r[37,:] = [6, 0]
+    r[38,:] = [6, 1]
+    r[39,:] = [7, 0]
+    r[40,:] = [7, 1]
+    r[41,:] = [8, 0]
+    r[42,:] = [9, 0]
+    r[43,:] = [10,0]
+    r[44,:] = [11,0]
+    r[45,:] = [12,0]
+    r[46,:] = [13,0]
+    r[47,:] = [14,0]
+    return r
 
 def allowalphanumeric(text):
     return text == "" or text.isalnum()
@@ -383,7 +438,7 @@ def build_template(image):
     template_index = 0
 
     global c
-    c = Config_File
+    c = Config_File()
 
     inst_dict = {}
     inst_dict[0] =  "Find the low end of the color scale on the image by clicking on the image. Click Next to continue"
@@ -930,7 +985,7 @@ if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
               str(n) + "/" + 
               str(int(np.max(plot))) + "/" + 
               dtg + "/" +
-              FS.subject + "/WXYZ//", file = file)
+              FS.subject + "/WXYZ/", file = file)
         S = ""
         for i in range(n):
             for j in range(n):
