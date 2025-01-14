@@ -56,7 +56,7 @@ class msg_read:
         footer = False
         for m in msg.splitlines():
             if header:
-                if "WXYZ" in m:
+                if "A1R1G2U3S5" in m:
                     header = False
                     S = m.split("/")
                     self.x, self.y, self.n, self.max = [int(k) for k in S[0:4]]
@@ -201,9 +201,26 @@ def plot_scale(image):
         plot_out = plot_out + (plot_bool.astype(int) * (i + 1))
     return plot_out
 
-# function to smooth out the colors
-def plot_smooth(arr,repeat,line):
+# function to smooth out the colors and crop out the borders
+def plot_smooth(arr,repeat):
+    # start by determining the top-bottom-left-right boundaries of the plot
+    (x_ps, y_ps) = arr.shape
+    crop_y1, crop_y2, crop_x1, crop_x2 = 0, 0, 0, 0
+
+    for i_ps in range(x_ps):
+        if np.sum(arr[i_ps,:]) != 0 and crop_x1 == 0:
+            crop_x1 = i_ps
+        if np.sum(arr[i_ps,:]) == 0 and crop_x1 != 0 and crop_x2 == 0:
+            crop_x2 = i_ps + 1
+
+    for i_ps in range(y_ps):
+        if np.sum(arr[:,i_ps]) != 0 and crop_y1 == 0:
+            crop_y1 = i_ps
+        if np.sum(arr[:,i_ps]) == 0 and crop_y1 != 0 and crop_y2 == 0:
+            crop_y2 = i_ps + 1
+
     arr_out = np.copy(arr)
+    # use queen smoothing to get rid of non-colored lines
     for r in range(repeat):
         arr_tmp = np.roll(np.roll(np.copy(arr_out), -1, axis = 0), -1, axis = 1).astype(np.float64)
         arr_tmp[0, :] = np.zeros_like(arr_tmp[0, :])
@@ -211,27 +228,22 @@ def plot_smooth(arr,repeat,line):
         arr_tmp[:, 0] = np.zeros_like(arr_tmp[:, 0])
         arr_tmp[:,-1] = np.zeros_like(arr_tmp[:,-1])
         arr_add = np.zeros_like(arr_out).astype(np.float64)
-
-        if line: arr_cnt = np.zeros_like(arr_out).astype(np.float64)
+        arr_cnt = np.zeros_like(arr_out).astype(np.float64)
 
         for (i, j) in [(1,0),(1,0),(1,1),(1,1),(-1,0),(-1,0),(-1,1),(-1,1)]:
             arr_tmp = np.roll(arr_tmp, i, axis = j)
             arr_add = arr_add + arr_tmp
+            arr_cnt = arr_cnt + np.array(arr_tmp != 0).astype(type(arr_cnt[0,0]))
 
-            if line: arr_cnt = arr_cnt + np.array(arr_tmp != 0).astype(type(arr_cnt[0,0]))
-
-        if line: 
-            arr_add = np.divide(arr_add, arr_cnt, out = np.zeros_like(arr_add), where=arr_cnt!=0)
-        else:
-            arr_add = arr_add / 8
+        arr_add = np.divide(arr_add, arr_cnt, out = np.zeros_like(arr_add), where=arr_cnt!=0)
 
         if test_mode: cv.imwrite('./test_add_' + str(r) + '.jpg', 10 * arr_add)
-        if test_mode and line: cv.imwrite('./test_cnt_' + str(r) + '.jpg', 10 * arr_cnt)
+        if test_mode: cv.imwrite('./test_cnt_' + str(r) + '.jpg', 10 * arr_cnt)
 
         arr_out = arr_out + np.array(np.multiply(arr_add,arr_out == 0)).astype(np.uint8)
 
         if test_mode: cv.imwrite('./test_' + str(r) + '.jpg', 10 * arr_out)
-    return arr_out
+    return arr_out[crop_x1:crop_x2, crop_y1:crop_y2]
 
 def image_restore(plot,subject,scale):
     x, y = plot.shape
@@ -289,134 +301,47 @@ def image_restore(plot,subject,scale):
 #####################################################################
 # C o n v e r t   b a s e   1 0   < - >   b a s e   6 2
 #####################################################################
-# function to compress integers [-990000000, 990000000] into 2 digits
-def c_int(i):
+# function to compress each coefficient into a single character from
+# a DFT array normalized to -1000 -> 1000
+def c_int(i_ci):
     ##################################################
     # User Defined: start of negative chr codes
     # define the chr() function displacement (ASCII code) for 'A' and 'a'
-
-    # check if less than 100
-    if abs(i) < 100: return '00'
-
-    # D = chr(A) and d = chr(a)
-    D = 65
-    d = 97
-
-    # check if it is negative
-    neg = i < 0
-
-    # the goal is to reduce 'i' to a number less than 2000 so it can be 
-    # converted to a base 62 (0-9,A-Z,a-z) and reduced to two characters
-    # so the first two numbers will be the first two significant digits
-    # and the last number will be the exponent. if negative, we add 1000.
-    r_str = str(int(abs(i)))[:2] + str(len(str(int(abs(i))-1)))
-    if neg: r = int(r_str) + 1000
-    else: r = int(r_str)
-
-    # now convert r to a base 62 number
-    r0_62 = int(np.floor(r / 62))
-    r1_62 = r - r0_62 * 62
-
-    if   r0_62 >= 36: r0 = chr(r0_62 + d - 36)
-    elif r0_62 >= 10: r0 = chr(r0_62 + D - 10)
-    else:             r0 = str(r0_62)
-
-    if   r1_62 >= 36: r1 = chr(r1_62 + 97 - 36)
-    elif r1_62 >= 10: r1 = chr(r1_62 + 65 - 10)
-    else:             r1 = str(r1_62) 
-
-    #if test_mode: 
-        #print(i)
-        #print(str(r) + " " + str(r0) + " " + str(r1))
-
-    return str(r0) + str(r1)
+    def c_int_round(k_r):
+        k_ir = 54
+        n_ir = 3
+        for i in range(n_ir):
+            for j in range(9):
+                if k_r > (8.5-j) * (10 ** (2 - i)): return k_ir
+                k_ir -= 1
+                if k_r < (j-8.5) * (10 ** (2 - i)): return k_ir
+                k_ir -= 1
+        return 0
+    
+    i_ci = c_int_round(i_ci)
+    
+    if i_ci < 10:      return str(i_ci)
+    if i_ci < 27 + 10: return chr(i_ci + ord('A') - 10)
+    return chr(i_ci + ord('a') - 36)
 
 # function to uncompress the message wall of text
-def c_str(i):
-    ##################################################
-    # Must Match! : start of negative chr codes from dft.py
-    # define the chr() function displacement
-
-    if i == "00": return 0
-
-    D = 65
-    d = 97
-
-    # work backwards from the compression in dft.py
-    # start by converting to decimal
-    if   ord(i[0]) >= d: r0 = int(ord(i[0]) - d + 36)
-    elif ord(i[0]) >= D: r0 = int(ord(i[0]) - D + 10)
-    else:                r0 = int(i[0])
-
-    if   ord(i[1]) >= d: r1 = int(ord(i[1]) - d + 36)
-    elif ord(i[1]) >= D: r1 = int(ord(i[1]) - D + 10)
-    else:                r1 = int(i[1])
-
-    r_64 = (62 * r0) + r1
-    if r_64 > 1000: r_64 = (-1) * (r_64 - 1000)
-
-    r_str = str(r_64)
-    l = len(r_str)
-
-    r = int(r_str[:(l-1)]) * (10 ** (int(r_str[-1]) - 2))
-
-    return r
-
-# Code a list of addresses and order for the coefficients we care about.
-# The maximum coefficients fall inside the y = 1/x graph.  To obtain the
-# correct number of coefficients (50 coefficents to make a 400 character
-# long message) I used all whole blocks inside of y = 17 / x graph.
-def get_addresses():
-    r = np.zeros((48,2))
-    r[0, :] = [0, 0]
-    r[1, :] = [0, 1]
-    r[2, :] = [0, 2]
-    r[3, :] = [0, 3]
-    r[4, :] = [0, 4]
-    r[5, :] = [0, 5]
-    r[6, :] = [0, 6]
-    r[7, :] = [0, 7]
-    r[8, :] = [0, 8]
-    r[9, :] = [0, 9]
-    r[10,:] = [0,10]
-    r[11,:] = [0,11]
-    r[12,:] = [0,12]
-    r[13,:] = [0,13]
-    r[14,:] = [0,14]
-    r[15,:] = [1, 0]
-    r[16,:] = [1, 1]
-    r[17,:] = [1, 2]
-    r[18,:] = [1, 3]
-    r[19,:] = [1, 4]
-    r[20,:] = [1, 5]
-    r[21,:] = [1, 6]
-    r[22,:] = [1, 7]
-    r[23,:] = [2, 0]
-    r[24,:] = [2, 1]
-    r[25,:] = [2, 2]
-    r[26,:] = [2, 3]
-    r[27,:] = [2, 4]
-    r[28,:] = [3, 0]
-    r[29,:] = [3, 1]
-    r[30,:] = [3, 2]
-    r[31,:] = [3, 3]
-    r[32,:] = [4, 0]
-    r[33,:] = [4, 1]
-    r[34,:] = [4, 2]
-    r[35,:] = [5, 0]
-    r[36,:] = [5, 1]
-    r[37,:] = [6, 0]
-    r[38,:] = [6, 1]
-    r[39,:] = [7, 0]
-    r[40,:] = [7, 1]
-    r[41,:] = [8, 0]
-    r[42,:] = [9, 0]
-    r[43,:] = [10,0]
-    r[44,:] = [11,0]
-    r[45,:] = [12,0]
-    r[46,:] = [13,0]
-    r[47,:] = [14,0]
-    return r
+def c_str(i_cs):
+    try:
+        m_cs = int(i_cs)
+    except:
+        if ord(i_cs) < ord('a'): m_cs = ord(i_cs) + 10 - ord('A')
+        else: m_cs = ord(i_cs) + 36 - ord('a')
+    
+    if m_cs == 0: return 0
+    if m_cs == 54: return 1000
+    
+    n_cs, k_cs = 3, 0
+    for i in range(n_cs):
+        for j in range(9):
+            k_cs += 1
+            if k_cs == m_cs: return (-1) * (j + 1) * (10 ** i)
+            k_cs += 1
+            if k_cs == m_cs: return (j + 1) * (10 ** i)
 
 def allowalphanumeric(text):
     return text == "" or text.isalnum()
@@ -897,24 +822,10 @@ if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
 
     # turn the image into a scalar plot and then smooth it over
     plot = plot_scale(image.copy())
-    if test_mode: cv.imwrite("./test_build_plot_raw.jpg", plot)
-    plot = plot_smooth(plot,6,True)
+    if test_mode: cv.imwrite("./test_build_plot_raw.jpg", plot * (256 / np.max(plot)))
+    plot = plot_smooth(plot,6)
     plot = np.array(plot).astype(float)
-    # plot = plot_smooth(plot,100,False)
-    if test_mode: cv.imwrite("./test_build_plot_smooth.jpg", plot)
-
-    # Experimental
-    # try replacing zeros with a lower level DFT restoration
-    n_smooth = 3
-    dft_smooth = cv.dft(np.float32(plot),flags=cv.DFT_COMPLEX_OUTPUT)
-    dft_smooth[n_smooth:x-n_smooth,:,:] = np.zeros((x-2*n_smooth,y,2))
-    dft_smooth[:,n_smooth:y-n_smooth,:] = np.zeros((x,y-2*n_smooth,2))
-    idft_smooth = cv.idft(dft_smooth)
-    idft_smooth = cv.magnitude(idft_smooth[:,:,0],idft_smooth[:,:,1])
-    idft_smooth = np.multiply(idft_smooth, np.array(plot == 0).astype(int))
-    idft_smooth = idft_smooth * (np.max(plot) / np.max(idft_smooth))
-    plot = idft_smooth + plot
-    # End experimental
+    if test_mode: cv.imwrite("./test_build_plot_smooth.jpg", plot * (256 / np.max(plot)))
 
     ################################################################
     # r u n    D F T 
@@ -922,13 +833,20 @@ if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
     DFT = cv.dft(np.float32(plot),flags=cv.DFT_COMPLEX_OUTPUT)
 
     #################################################################
-    # User defined: # DFT coefficients
-    # number of terms will be ((n * 2) ^ 2) * 2
-    n = 40
+    # B u i l d   a   c u r t a i l e d   D F T 
+    # Use the coefficient list to build out a new DFT
+    # I have tried a few different shapes.  Turns out that a square
+    # at each corner of the 
+    (x_p, y_p) = plot.shape
+    
+    # only retain a nxn box in each quadrant of the DFT
+    n = 10
+    DFT[n:x_p-1-n,:,:] = np.zeros_like(DFT[n:x_p-1-n,:,:])
+    DFT[:,n:y_p-1-n,:] = np.zeros_like(DFT[:,n:y_p-1-n,:])
 
-    # Remove higher frequency coefficients
-    DFT[n:x-n,:,:] = np.zeros_like(DFT[n:x-n,:,:])
-    DFT[:,n:y-n,:] = np.zeros_like(DFT[:,n:y-n,:])
+    # normalize so all values are between -1000 and 1000
+    DFT_max = 1000
+    DFT = DFT * (DFT_max / np.max(np.abs(DFT)))
 
     # in test mode: build an image as a visual representation 
     # of the DFT coefficients
@@ -946,27 +864,114 @@ if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
         dft_image_im[   :n,n+1: ] = DFT[-n: ,  :n,1]
         dft_image_im[n+1: ,n+1: ] = DFT[  :n,  :n,1]
 
+        dft_image_re_log = np.log10(np.abs(dft_image_re))
+        dft_image_im_log = np.log10(np.abs(dft_image_im))
+
         cv.imwrite("./test_build_DFT_image_re.jpg", dft_image_re * (256 / np.max(dft_image_re)))
         cv.imwrite("./test_build_DFT_image_im.jpg", dft_image_im * (256 / np.max(dft_image_im)))
-        
+        cv.imwrite("./test_build_DFT_image_re_log.jpg", dft_image_re_log * (256 / np.max(dft_image_re_log)))
+        cv.imwrite("./test_build_DFT_image_im_log.jpg", dft_image_im_log * (256 / np.max(dft_image_im_log)))
+      
 
-    # in test mode: calculate the RMS of the difference between
-    # the input and the output
-    if test_mode: 
+        # in test mode: calculate the RMS due to curtailment
         IDFT = cv.idft(DFT)
         IDFT = cv.magnitude(IDFT[:,:,0],IDFT[:,:,1])
         IDFT = IDFT * (np.max(plot) / np.max(IDFT))
+        IDFT = np.round(IDFT).astype(int)
+        IDFT = np.multiply(IDFT, plot >= 1)
         cv.imwrite("./test_build_DFT_small.jpg", IDFT * (256 / np.max(IDFT)))
-        diff = (plot - IDFT) ** 2
+        diff = ((plot - IDFT) ** 2) / len(plot.flatten())
         RMS = np.sqrt(np.sum(diff))
         print("##################################")
-        print("# n_smooth = " + str(n_smooth))
+        print("# C u r t a i l e d   D F T")
         print("# n = " + str(n))
         print("# RMS = " + str(RMS))
-        
+
+        # in test mode: calculate the RMS due to rounding
+        def log_rounding(x,a):
+            k_lr = 0
+            n_lr = int(np.log10(a))
+            for i in range(n_lr):
+                e = (10 ** (n_lr - 1 - i))
+                for j in range(9):
+                    if x > (9-j) * e: return (9-j) * e
+                    k_lr += 1
+                    if x < (j-9) * e: return (j-9) * e
+                    k_lr += 1
+            print(k_lr)
+            return 0
+            
+        DFT_rounded = DFT.copy()
+        for i in range(n):
+            for j in range(n):
+                DFT_rounded[i,      j      ,0] = log_rounding(DFT_rounded[i,      j      ,0],DFT_max)
+                DFT_rounded[x_p-1-i,j      ,0] = log_rounding(DFT_rounded[x_p-1-i,j      ,0],DFT_max)
+                DFT_rounded[i,      y_p-1-j,0] = log_rounding(DFT_rounded[i,      y_p-1-j,0],DFT_max)
+                DFT_rounded[x_p-1-i,y_p-1-j,0] = log_rounding(DFT_rounded[x_p-1-i,y_p-1-j,0],DFT_max)
+                DFT_rounded[i,      j      ,1] = log_rounding(DFT_rounded[i,      j      ,1],DFT_max)
+                DFT_rounded[x_p-1-i,j      ,1] = log_rounding(DFT_rounded[x_p-1-i,j      ,1],DFT_max)
+                DFT_rounded[i,      y_p-1-j,1] = log_rounding(DFT_rounded[i,      y_p-1-j,1],DFT_max)
+                DFT_rounded[x_p-1-i,y_p-1-j,1] = log_rounding(DFT_rounded[x_p-1-i,y_p-1-j,1],DFT_max)
+
+        dft_image_rounded_re = np.zeros((2*n + 1, 2*n + 1))
+        dft_image_rounded_im = np.zeros((2*n + 1, 2*n + 1))
+
+        dft_image_rounded_re[   :n,   :n] = DFT_rounded[-n: ,-n: ,0]
+        dft_image_rounded_re[n+1: ,   :n] = DFT_rounded[  :n,-n: ,0]
+        dft_image_rounded_re[   :n,n+1: ] = DFT_rounded[-n: ,  :n,0]
+        dft_image_rounded_re[n+1: ,n+1: ] = DFT_rounded[  :n,  :n,0]
+
+        dft_image_rounded_im[   :n,   :n] = DFT_rounded[-n: ,-n: ,1]
+        dft_image_rounded_im[n+1: ,   :n] = DFT_rounded[  :n,-n: ,1]
+        dft_image_rounded_im[   :n,n+1: ] = DFT_rounded[-n: ,  :n,1]
+        dft_image_rounded_im[n+1: ,n+1: ] = DFT_rounded[  :n,  :n,1]
+
+        dft_image_rounded_re_log = np.log10(np.abs(dft_image_rounded_re))
+        dft_image_rounded_im_log = np.log10(np.abs(dft_image_rounded_im))
+
+        cv.imwrite("./test_build_DFT_image_rounded_re.jpg", dft_image_rounded_re * (256 / np.max(dft_image_rounded_re)))
+        cv.imwrite("./test_build_DFT_image_rounded_im.jpg", dft_image_rounded_im * (256 / np.max(dft_image_rounded_im)))
+        cv.imwrite("./test_build_DFT_image_rounded_re_log.jpg", dft_image_rounded_re_log * (256 / np.max(dft_image_rounded_re_log)))
+        cv.imwrite("./test_build_DFT_image_rounded_im_log.jpg", dft_image_rounded_im_log * (256 / np.max(dft_image_rounded_im_log)))
+
+        IDFT = cv.idft(DFT_rounded)
+        IDFT = cv.magnitude(IDFT[:,:,0],IDFT[:,:,1])
+        IDFT = IDFT * (np.max(plot) / np.max(IDFT))
+        IDFT = np.round(IDFT).astype(int)
+        IDFT = np.multiply(IDFT, plot >= 1)
+        cv.imwrite("./test_build_DFT_small.jpg", IDFT * (256 / np.max(IDFT)))
+        diff = ((plot - IDFT) ** 2) / len(plot.flatten())
+        RMS = np.sqrt(np.sum(diff))
+        print("##################################")
+        print("# R o u n d e d   D F T")
+        print("# n = " + str(n))
+        print("# RMS = " + str(RMS))       
+
+        # in test mode: build an image as a visual representation 
+        # of the DFT coefficients
+        dft_image_round_re = np.zeros((2*n + 1, 2*n + 1))
+        dft_image_round_im = np.zeros((2*n + 1, 2*n + 1))
+
+        dft_image_round_re[   :n,   :n] = DFT_rounded[-n: ,-n: ,0]
+        dft_image_round_re[n+1: ,   :n] = DFT_rounded[  :n,-n: ,0]
+        dft_image_round_re[   :n,n+1: ] = DFT_rounded[-n: ,  :n,0]
+        dft_image_round_re[n+1: ,n+1: ] = DFT_rounded[  :n,  :n,0]
+
+        dft_image_round_im[   :n,   :n] = DFT_rounded[-n: ,-n: ,1]
+        dft_image_round_im[n+1: ,   :n] = DFT_rounded[  :n,-n: ,1]
+        dft_image_round_im[   :n,n+1: ] = DFT_rounded[-n: ,  :n,1]
+        dft_image_round_im[n+1: ,n+1: ] = DFT_rounded[  :n,  :n,1]
+
+        dft_image_round_re_log = np.log10(np.abs(dft_image_re))
+        dft_image_round_im_log = np.log10(np.abs(dft_image_im))
+
+        cv.imwrite("./test_build_DFT_image_re.jpg", dft_image_re * (256 / np.max(dft_image_re)))
+        cv.imwrite("./test_build_DFT_image_im.jpg", dft_image_im * (256 / np.max(dft_image_im)))
+        cv.imwrite("./test_build_DFT_image_re_log.jpg", dft_image_re_log * (256 / np.max(dft_image_re_log)))
+        cv.imwrite("./test_build_DFT_image_im_log.jpg", dft_image_im_log * (256 / np.max(dft_image_im_log)))
+      
 
     # save the values of the DFT to a file
-
     message_file_path = FS.orig_folder + "/" + FS.subject + ".txt"
 
     if test_mode:
@@ -980,24 +985,53 @@ if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
             message_template_intro = message_template.split("<message>")[0]
             message_template_outro = message_template.split("<message>")[1]
             for m_t in message_template_intro.splitlines(): print(m_t, file = file)
-        print(str(x) + "/" + 
-              str(y) + "/" + 
+        print(str(x_p) + "/" + 
+              str(y_p) + "/" + 
               str(n) + "/" + 
               str(int(np.max(plot))) + "/" + 
               dtg + "/" +
-              FS.subject + "/WXYZ/", file = file)
+              FS.subject + "/A1R1G2U3S5/",                                 file = file)
         S = ""
-        for i in range(n):
-            for j in range(n):
-                i_s, j_s, k_s = [i,x-i-1], [j,y-j-1], [0, 1]
-                for i1 in i_s:
-                    for j1 in j_s:
-                        for k1 in k_s:
-                            S = S + c_int(DFT[i1,j1,k1])
-                            if len(S) > 67:
-                                print(S,                                          file = file)
-                                S = ""
-        print(S + "//",                                                           file = file)
+        # this pattern is copied 3 times so that the coefficients will
+        # walk out from the corner like this:
+        # 1 2 3 4 5 ...
+        # 2 2 3 4 5 ...
+        # 3 3 3 4 5 ...
+        # 4 4 4 4 5 ...
+        # 5 5 5 5 5 ...
+        for k in range(n):
+            if k != 0:
+                j = k
+                for i in range(k):
+                    i_s, j_s, k_s = [i,x_p-i-1], [j,y_p-j-1], [0, 1]
+                    for i1 in i_s:
+                        for j1 in j_s:
+                            for k1 in k_s:
+                                S = S + c_int(DFT[i1,j1,k1])
+                                if len(S) > 68:
+                                    print(S,                               file = file)
+                                    S = ""
+            i_s, j_s, k_s = [k,x_p-i-1], [k,y_p-j-1], [0, 1]
+            for i1 in i_s:
+                for j1 in j_s:
+                    for k1 in k_s:
+                        S = S + c_int(DFT[i1,j1,k1])
+                        if len(S) > 68:
+                            print(S,                               file = file)
+                            S = ""
+            if k != 0:
+                j = k
+                for i in range(k):
+                    i_s, j_s, k_s = [i,x_p-i-1], [j,y_p-j-1], [0, 1]
+                    for i1 in i_s:
+                        for j1 in j_s:
+                            for k1 in k_s:
+                                S = S + c_int(DFT[i1,j1,k1])
+                                if len(S) > 68:
+                                    print(S,                               file = file)
+                                    S = ""
+
+        print(S + "//",                                                file = file)
         if os.path.exists(FS.cwd + "/Message Template.txt"):
             for m_t in message_template_outro.splitlines(): print(m_t, file = file)
     os.startfile(message_file_path)
