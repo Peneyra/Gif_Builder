@@ -303,6 +303,29 @@ def image_restore(plot,subject,scale):
 #####################################################################
 # function to compress each coefficient into a single character from
 # a DFT array normalized to -1000 -> 1000
+def dec2aA1(i):    
+    if i < 10: return      str(i)
+    if i < 36: return chr(i + ord('A') - 10)
+    return                 chr(i + ord('a') - 36)
+
+def aA12dec(s):
+    try:
+        return                int(s)
+    except:
+        if ord(s) < ord('a'): return int(ord(s) + 10 - ord('A'))
+        else:                 return int(ord(s) + 36 - ord('a'))
+
+def coeff_round(x):
+    k_ir = 54
+    n_ir = 3
+    for i in range(n_ir):
+        for j in range(9):
+            if x > (8.5-j) * (10 ** (2 - i)): return k_ir
+            k_ir -= 1
+            if x < (j-8.5) * (10 ** (2 - i)): return k_ir
+            k_ir -= 1
+    return 0
+
 def c_int(i_ci):
     ##################################################
     # User Defined: start of negative chr codes
@@ -970,6 +993,88 @@ if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
         cv.imwrite("./test_build_DFT_image_re_log.jpg", dft_image_re_log * (256 / np.max(dft_image_re_log)))
         cv.imwrite("./test_build_DFT_image_im_log.jpg", dft_image_im_log * (256 / np.max(dft_image_im_log)))
       
+    # save all coefficients to a single flattened array organized by:
+    # 1 2 3 4 5 ...
+    # 2 2 3 4 5 ...
+    # 3 3 3 4 5 ...
+    # 4 4 4 4 5 ...
+    # 5 5 5 5 5 ...
+    # This organization will assist with maximum compression of the follow on message
+    DFT_flat = np.zeros(n * n * 8).astype(int)
+
+    # k_df below is used to mark the next coefficent to write
+    k_df = 0
+
+    for k in range(n):
+        if k != 0:
+            j = k
+            for i in range(k):
+                i_s, j_s, k_s = [i,x_p-i-1], [j,y_p-j-1], [0, 1]
+                for i1 in i_s:
+                    for j1 in j_s:
+                        for k1 in k_s:
+                            DFT_flat[k_df] = int(coeff_round(DFT[i1,j1,k1]))
+                            k_df += 1
+        i_s, j_s, k_s = [k,x_p-i-1], [k,y_p-j-1], [0, 1]
+        for i1 in i_s:
+            for j1 in j_s:
+                for k1 in k_s:
+                    DFT_flat[k_df] = int(coeff_round(DFT[i1,j1,k1]))
+                    k_df += 1
+        if k != 0:
+            j = k
+            for i in range(k):
+                i_s, j_s, k_s = [i,x_p-i-1], [j,y_p-j-1], [0, 1]
+                for i1 in i_s:
+                    for j1 in j_s:
+                        for k1 in k_s:
+                            DFT_flat[k_df] = int(coeff_round(DFT[i1,j1,k1]))
+                            k_df += 1
+    
+    # k_df below is used to mark the last written coefficent
+    line_limit = 62 ** 68
+    k_df = 0
+    msg_bulk = ""
+    for k in range(1,len(DFT_flat)):
+        if int(max(DFT_flat[k_df:k])) ** (k - k_df) > line_limit:
+            m_df = int(max(DFT_flat[k_df:k-1]))
+            # start a new line with the character for the max coefficient
+            # on the line
+            if msg_bulk != "": msg_bulk = msg_bulk + "\n"
+            msg_bulk += dec2aA1(m_df)
+            
+            # convert it to a base_max number
+            line_int = 0
+            for df in DFT_flat[k_df:k-1]:
+                line_int = (m_df * line_int) + int(df)
+            
+            # convert it to a base_62 number
+            while line_int > 0:
+                msg_bulk += dec2aA1(int(line_int % 62))
+                line_int = (line_int - (line_int % 62)) / 62
+            
+            k_df = k - 1
+
+    k = len(DFT_flat)
+    m_df = int(max(DFT_flat[k_df:k-1]))
+    # start a new line with the character for the max coefficient
+    # on the line
+    if msg_bulk != "": msg_bulk = msg_bulk + "\n"
+    msg_bulk += dec2aA1(m_df)
+    
+    # convert it to a base_max number
+    line_int = 0
+    for df in DFT_flat[k_df:k-1]:
+        line_int = (m_df * line_int) + int(df)
+    
+    # convert it to a base_62 number
+    while line_int > 0:
+        msg_bulk += dec2aA1(int(line_int % 62))
+        line_int = (line_int - (line_int % 62)) / 62
+    k_df = k - 1
+
+    if len(msg_bulk.splitlines()[-1]) > 67: msg_bulk += "\n"
+    msg_bulk += "//"
 
     # save the values of the DFT to a file
     message_file_path = FS.orig_folder + "/" + FS.subject + ".txt"
@@ -982,8 +1087,8 @@ if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
     with open(message_file_path,'w') as file:
         if os.path.exists(FS.cwd + "/Message Template.txt"):
             with open("Message Template.txt", "r") as file_r: message_template = file_r.read()
-            message_template_intro = message_template.split("<message>")[0]
-            message_template_outro = message_template.split("<message>")[1]
+            message_template_intro = message_template.split("<message>\n")[0]
+            message_template_outro = message_template.split("<message>\n")[1]
             for m_t in message_template_intro.splitlines(): print(m_t, file = file)
         print(str(x_p) + "/" + 
               str(y_p) + "/" + 
@@ -991,47 +1096,7 @@ if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
               str(int(np.max(plot))) + "/" + 
               dtg + "/" +
               FS.subject + "/A1R1G2U3S5/",                                 file = file)
-        S = ""
-        # this pattern is copied 3 times so that the coefficients will
-        # walk out from the corner like this:
-        # 1 2 3 4 5 ...
-        # 2 2 3 4 5 ...
-        # 3 3 3 4 5 ...
-        # 4 4 4 4 5 ...
-        # 5 5 5 5 5 ...
-        for k in range(n):
-            if k != 0:
-                j = k
-                for i in range(k):
-                    i_s, j_s, k_s = [i,x_p-i-1], [j,y_p-j-1], [0, 1]
-                    for i1 in i_s:
-                        for j1 in j_s:
-                            for k1 in k_s:
-                                S = S + c_int(DFT[i1,j1,k1])
-                                if len(S) > 68:
-                                    print(S,                               file = file)
-                                    S = ""
-            i_s, j_s, k_s = [k,x_p-i-1], [k,y_p-j-1], [0, 1]
-            for i1 in i_s:
-                for j1 in j_s:
-                    for k1 in k_s:
-                        S = S + c_int(DFT[i1,j1,k1])
-                        if len(S) > 68:
-                            print(S,                               file = file)
-                            S = ""
-            if k != 0:
-                j = k
-                for i in range(k):
-                    i_s, j_s, k_s = [i,x_p-i-1], [j,y_p-j-1], [0, 1]
-                    for i1 in i_s:
-                        for j1 in j_s:
-                            for k1 in k_s:
-                                S = S + c_int(DFT[i1,j1,k1])
-                                if len(S) > 68:
-                                    print(S,                               file = file)
-                                    S = ""
-
-        print(S + "//",                                                file = file)
+        print(msg_bulk,                                                file = file)
         if os.path.exists(FS.cwd + "/Message Template.txt"):
             for m_t in message_template_outro.splitlines(): print(m_t, file = file)
     os.startfile(message_file_path)
