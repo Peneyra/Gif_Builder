@@ -54,39 +54,50 @@ class msg_read:
     def __init__(self,msg):
         header = True
         footer = False
+        k_mr = 0
+        k_start = 0
         for m in msg.splitlines():
             if header:
                 if "A1R1G2U3S5" in m:
                     header = False
                     S = m.split("/")
-                    self.x, self.y, self.n, self.max = [int(k) for k in S[0:4]]
+                    x, y, n, max = [int(k) for k in S[0:4]]
+                    self.x = x
+                    self.y = y
+                    self.n = n
+                    self.max = max
                     self.dtg = m.split("/")[4]
                     self.subject = m.split("/")[5]
-                    i, j, index = 0, 0, 0
-                    i_s, j_s = [i,int(S[0])-i-1], [j,int(S[1])-j-1]
                     # initialize the DFT
                     self.DFT = np.zeros((int(S[0]),int(S[1]),2))
-            else:
-                n1 = 0
-                while n1 + 2 <= len(m):
-                    if not '/' in m[n1:n1+2] and not footer:
-                        val = c_str(m[n1:n1+2])
-                        # place c in the array
-                        k1 = int(index % 2)
-                        j1 = int(((index - k1) / 2) % 2)
-                        i1 = int(((index - k1 - (2 * j1)) / 4) % 2)
-                        self.DFT[i_s[i1],j_s[j1],k1] = val
-                        index += 1
-                        if index == 8:
-                            j = (j + 1) % int(S[2])
-                            j_s = [j,int(S[1])-j-1]
-                            if j == 0:
-                                i = i + 1
-                                i_s = [i,int(S[0])-i-1]
-                            index = 0
-                    else:
+                    address = DFT_mapping(n)
+                    DFT_flat = np.zeros(n * n * 8).astype(int)
+            elif not footer:
+                m_mr = aA12dec(m[0])
+                line_int = 0
+                for a in m[1:][::-1]:
+                    if a == "/":
                         footer = True
-                    n1 += 2
+                    else:
+                        line_int = (62 * line_int) + int(aA12dec(a))
+                        print(line_int)
+                DFT_flat_dummy = []
+                while line_int > 0:
+                    DFT_flat_dummy.append(int(line_int % (m_mr)))
+                    line_int = int((line_int - (line_int % (m_mr))) / (m_mr))
+                print(DFT_flat_dummy)
+                for dfd in DFT_flat_dummy[::-1]:
+                    DFT_flat[k_mr] = dfd
+                    k_mr += 1
+        k_df = 0
+        if test_mode: print(DFT_flat)
+        for [i,j] in address:
+            i_s, j_s, k_s = [i,x-i-1], [j,y-j-1], [0, 1]
+            for i1 in i_s:
+                for j1 in j_s:
+                    for k1 in k_s:
+                        self.DFT[i1,j1,k1] = coeff_unround(DFT_flat[k_df])
+                        k_df += 1
 
 class config_read():
     def __init__(self, file_path):
@@ -203,22 +214,6 @@ def plot_scale(image):
 
 # function to smooth out the colors and crop out the borders
 def plot_smooth(arr,repeat):
-    # start by determining the top-bottom-left-right boundaries of the plot
-    (x_ps, y_ps) = arr.shape
-    crop_y1, crop_y2, crop_x1, crop_x2 = 0, 0, 0, 0
-
-    for i_ps in range(x_ps):
-        if np.sum(arr[i_ps,:]) != 0 and crop_x1 == 0:
-            crop_x1 = i_ps
-        if np.sum(arr[i_ps,:]) == 0 and crop_x1 != 0 and crop_x2 == 0:
-            crop_x2 = i_ps + 1
-
-    for i_ps in range(y_ps):
-        if np.sum(arr[:,i_ps]) != 0 and crop_y1 == 0:
-            crop_y1 = i_ps
-        if np.sum(arr[:,i_ps]) == 0 and crop_y1 != 0 and crop_y2 == 0:
-            crop_y2 = i_ps + 1
-
     arr_out = np.copy(arr)
     # use queen smoothing to get rid of non-colored lines
     for r in range(repeat):
@@ -243,7 +238,33 @@ def plot_smooth(arr,repeat):
         arr_out = arr_out + np.array(np.multiply(arr_add,arr_out == 0)).astype(np.uint8)
 
         if test_mode: cv.imwrite('./test_' + str(r) + '.jpg', 10 * arr_out)
-    return arr_out[crop_x1:crop_x2, crop_y1:crop_y2]
+    return arr_out
+
+
+def plot_mirror_edge(arr):
+    # start by determining the top-bottom-left-right boundaries of the plot
+    (x_pme, y_pme) = arr.shape
+    crop_y1, crop_y2, crop_x1, crop_x2 = 0, 0, 0, 0
+
+    for i in range(x_pme):
+        if np.sum(arr[i,:]) != 0 and crop_x1 == 0:
+            crop_x1 = i
+        if np.sum(arr[i,:]) == 0 and crop_x1 != 0 and crop_x2 == 0:
+            crop_x2 = i - 1
+
+    for i in range(y_pme):
+        if np.sum(arr[:,i]) != 0 and crop_y1 == 0:
+            crop_y1 = i
+        if np.sum(arr[:,i]) == 0 and crop_y1 != 0 and crop_y2 == 0:
+            crop_y2 = i - 1
+
+    arr[0:crop_x1, :] = np.flip(arr[crop_x1:2*crop_x1, :], axis = 0)
+    arr[crop_x2:x_pme, :] = np.flip(arr[(2*crop_x2)-x_pme:crop_x2, :], axis = 0)
+
+    arr[:,0:crop_y1] = np.flip(arr[:, crop_y1:2*crop_y1], axis = 1)
+    arr[:,crop_y2:y_pme] = np.flip(arr[:, (2*crop_y2)-y_pme:crop_y2], axis = 1)
+    return arr
+
 
 def image_restore(plot,subject,scale):
     x, y = plot.shape
@@ -275,19 +296,19 @@ def image_restore(plot,subject,scale):
     #              y1 = top most y,  y2 = bottom most y
 
     # crop the image to remove the legend
-    if c.crop_y1 !=0: image[:c.crop_y1, :, :] = image_template[:c.crop_y1, :, :].copy()
+    if c.crop_y1 !=0: image[:c.crop_y1, :, :] =  image_template[:c.crop_y1, :, :].copy()
     if test_mode:
         cv.imwrite("./test_restore_cropped1.jpg",image_template[:c.crop_y1, :, :].copy())
         cv.imwrite("./test_restore_crop1.jpg",image)
-    if c.crop_y2 !=0: image[c.crop_y2:, :, :] = image_template[c.crop_y2:, :, :].copy()
+    if c.crop_y2 !=0: image[c.crop_y2:, :, :] =  image_template[c.crop_y2:, :, :].copy()
     if test_mode:
         cv.imwrite("./test_restore_cropped2.jpg",image_template[c.crop_y2:, :, :].copy())
         cv.imwrite("./test_restore_crop2.jpg",image)
-    if c.crop_x1 !=0: image[:, :c.crop_x1, :] = image_template[:, :c.crop_x1, :].copy()
+    if c.crop_x1 !=0: image[:, :c.crop_x1, :] =  image_template[:, :c.crop_x1, :].copy()
     if test_mode:
         cv.imwrite("./test_restore_cropped3.jpg",image_template[:, :c.crop_x1, :].copy())
         cv.imwrite("./test_restore_crop3.jpg",image)
-    if c.crop_x2 !=0: image[:, c.crop_x2:, :] = image_template[:, c.crop_x2:, :].copy()
+    if c.crop_x2 !=0: image[:, c.crop_x2:, :] =  image_template[:, c.crop_x2:, :].copy()
     if test_mode:
         cv.imwrite("./test_restore_cropped4.jpg",image_template[:, c.crop_x2:, :].copy())
         cv.imwrite("./test_restore_crop4.jpg",image)
@@ -304,27 +325,72 @@ def image_restore(plot,subject,scale):
 # function to compress each coefficient into a single character from
 # a DFT array normalized to -1000 -> 1000
 def dec2aA1(i):    
-    if i < 10: return      str(i)
-    if i < 36: return chr(i + ord('A') - 10)
-    return                 chr(i + ord('a') - 36)
+    if i < 10: return         str(i)
+    if i < 36: return         chr(i + ord('A') - 10)
+    return                    chr(i + ord('a') - 36)
 
 def aA12dec(s):
     try:
         return                int(s)
     except:
-        if ord(s) < ord('a'): return int(ord(s) + 10 - ord('A'))
-        else:                 return int(ord(s) + 36 - ord('a'))
+        if ord(s) < ord('a'): 
+            return            int(ord(s) + 10 - ord('A'))
+        else: return          int(ord(s) + 36 - ord('a'))
 
 def coeff_round(x):
-    k_ir = 54
-    n_ir = 3
-    for i in range(n_ir):
+    k_cr = 54
+    n_cr = 3
+    for i in range(n_cr):
         for j in range(9):
-            if x > (8.5-j) * (10 ** (2 - i)): return k_ir
-            k_ir -= 1
-            if x < (j-8.5) * (10 ** (2 - i)): return k_ir
-            k_ir -= 1
+            if x > (9.5-j) * (10 ** (2 - i)): return k_cr
+            k_cr -= 1
+            if x < (j-9.5) * (10 ** (2 - i)): return k_cr
+            k_cr -= 1
     return 0
+
+def coeff_unround(x):
+    if x == 0: return 0
+    k_cu = 1
+    n_cu = 3
+    for i in range(n_cu):
+        for j in range(2,11):
+            if x == k_cu: return (-1) * j * (10 ** i)
+            k_cu += 1
+            if x == k_cu: return        j * (10 ** i)
+            k_cu += 1
+
+    for i in range(n_cu):
+        for j in range(9):
+            if x > (9.5-j) * (10 ** (2 - i)): return k_cu
+            k_cu -= 1
+            if x < (j-9.5) * (10 ** (2 - i)): return k_cu
+            k_cu -= 1
+    return 0
+
+def DFT_mapping(n):
+    # save all coefficients to a single flattened array organized by:
+    # 1 2 3 4 5 ...
+    # 2 2 3 4 5 ...
+    # 3 3 3 4 5 ...
+    # 4 4 4 4 5 ...
+    # 5 5 5 5 5 ...
+    # This organization will assist with maximum compression of the follow on message
+    # map all the addresses in the order you want them
+    address = [[0,0]] * (n * n)
+    k_a = 1
+    for k in range(1,n):
+        j = k
+        for i in range(k):
+            address[k_a] = [i, j]
+            k_a += 1
+        address[k_a] = [k, k]
+        k_a += 1
+        i = k
+        for j in range(k):
+            address[k_a] = [i, j]
+            k_a += 1
+    
+    return address
 
 def c_int(i_ci):
     ##################################################
@@ -845,10 +911,9 @@ if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
 
     # turn the image into a scalar plot and then smooth it over
     plot = plot_scale(image.copy())
-    if test_mode: cv.imwrite("./test_build_plot_raw.jpg", plot * (256 / np.max(plot)))
-    plot = plot_smooth(plot,6)
     plot = np.array(plot).astype(float)
-    if test_mode: cv.imwrite("./test_build_plot_smooth.jpg", plot * (256 / np.max(plot)))
+    plot = plot_smooth(plot,20)
+    plot = plot_mirror_edge(plot)
 
     ################################################################
     # r u n    D F T 
@@ -909,32 +974,29 @@ if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
         print("# C u r t a i l e d   D F T")
         print("# n = " + str(n))
         print("# RMS = " + str(RMS))
-
-        # in test mode: calculate the RMS due to rounding
-        def log_rounding(x,a):
-            k_lr = 0
-            n_lr = int(np.log10(a))
-            for i in range(n_lr):
-                e = (10 ** (n_lr - 1 - i))
-                for j in range(9):
-                    if x > (9-j) * e: return (9-j) * e
-                    k_lr += 1
-                    if x < (j-9) * e: return (j-9) * e
-                    k_lr += 1
-            print(k_lr)
-            return 0
             
         DFT_rounded = DFT.copy()
         for i in range(n):
             for j in range(n):
-                DFT_rounded[i,      j      ,0] = log_rounding(DFT_rounded[i,      j      ,0],DFT_max)
-                DFT_rounded[x_p-1-i,j      ,0] = log_rounding(DFT_rounded[x_p-1-i,j      ,0],DFT_max)
-                DFT_rounded[i,      y_p-1-j,0] = log_rounding(DFT_rounded[i,      y_p-1-j,0],DFT_max)
-                DFT_rounded[x_p-1-i,y_p-1-j,0] = log_rounding(DFT_rounded[x_p-1-i,y_p-1-j,0],DFT_max)
-                DFT_rounded[i,      j      ,1] = log_rounding(DFT_rounded[i,      j      ,1],DFT_max)
-                DFT_rounded[x_p-1-i,j      ,1] = log_rounding(DFT_rounded[x_p-1-i,j      ,1],DFT_max)
-                DFT_rounded[i,      y_p-1-j,1] = log_rounding(DFT_rounded[i,      y_p-1-j,1],DFT_max)
-                DFT_rounded[x_p-1-i,y_p-1-j,1] = log_rounding(DFT_rounded[x_p-1-i,y_p-1-j,1],DFT_max)
+                DFT_rounded[i,      j      ,0] = coeff_round(DFT_rounded[i,      j      ,0])
+                DFT_rounded[x_p-1-i,j      ,0] = coeff_round(DFT_rounded[x_p-1-i,j      ,0])
+                DFT_rounded[i,      y_p-1-j,0] = coeff_round(DFT_rounded[i,      y_p-1-j,0])
+                DFT_rounded[x_p-1-i,y_p-1-j,0] = coeff_round(DFT_rounded[x_p-1-i,y_p-1-j,0])
+                DFT_rounded[i,      j      ,1] = coeff_round(DFT_rounded[i,      j      ,1])
+                DFT_rounded[x_p-1-i,j      ,1] = coeff_round(DFT_rounded[x_p-1-i,j      ,1])
+                DFT_rounded[i,      y_p-1-j,1] = coeff_round(DFT_rounded[i,      y_p-1-j,1])
+                DFT_rounded[x_p-1-i,y_p-1-j,1] = coeff_round(DFT_rounded[x_p-1-i,y_p-1-j,1])
+
+        for i in range(n):
+            for j in range(n):
+                DFT_rounded[i,      j      ,0] = coeff_unround(DFT_rounded[i,      j      ,0])
+                DFT_rounded[x_p-1-i,j      ,0] = coeff_unround(DFT_rounded[x_p-1-i,j      ,0])
+                DFT_rounded[i,      y_p-1-j,0] = coeff_unround(DFT_rounded[i,      y_p-1-j,0])
+                DFT_rounded[x_p-1-i,y_p-1-j,0] = coeff_unround(DFT_rounded[x_p-1-i,y_p-1-j,0])
+                DFT_rounded[i,      j      ,1] = coeff_unround(DFT_rounded[i,      j      ,1])
+                DFT_rounded[x_p-1-i,j      ,1] = coeff_unround(DFT_rounded[x_p-1-i,j      ,1])
+                DFT_rounded[i,      y_p-1-j,1] = coeff_unround(DFT_rounded[i,      y_p-1-j,1])
+                DFT_rounded[x_p-1-i,y_p-1-j,1] = coeff_unround(DFT_rounded[x_p-1-i,y_p-1-j,1])
 
         dft_image_rounded_re = np.zeros((2*n + 1, 2*n + 1))
         dft_image_rounded_im = np.zeros((2*n + 1, 2*n + 1))
@@ -962,7 +1024,7 @@ if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
         IDFT = IDFT * (np.max(plot) / np.max(IDFT))
         IDFT = np.round(IDFT).astype(int)
         IDFT = np.multiply(IDFT, plot >= 1)
-        cv.imwrite("./test_build_DFT_small.jpg", IDFT * (256 / np.max(IDFT)))
+        cv.imwrite("./test_build_DFT_rounded_small.jpg", IDFT * (256 / np.max(IDFT)))
         diff = ((plot - IDFT) ** 2) / len(plot.flatten())
         RMS = np.sqrt(np.sum(diff))
         print("##################################")
@@ -993,70 +1055,56 @@ if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
         cv.imwrite("./test_build_DFT_image_re_log.jpg", dft_image_re_log * (256 / np.max(dft_image_re_log)))
         cv.imwrite("./test_build_DFT_image_im_log.jpg", dft_image_im_log * (256 / np.max(dft_image_im_log)))
       
-    # save all coefficients to a single flattened array organized by:
-    # 1 2 3 4 5 ...
-    # 2 2 3 4 5 ...
-    # 3 3 3 4 5 ...
-    # 4 4 4 4 5 ...
-    # 5 5 5 5 5 ...
-    # This organization will assist with maximum compression of the follow on message
+    address = DFT_mapping(n)
     DFT_flat = np.zeros(n * n * 8).astype(int)
-
-    # k_df below is used to mark the next coefficent to write
     k_df = 0
-
-    for k in range(n):
-        if k != 0:
-            j = k
-            for i in range(k):
-                i_s, j_s, k_s = [i,x_p-i-1], [j,y_p-j-1], [0, 1]
-                for i1 in i_s:
-                    for j1 in j_s:
-                        for k1 in k_s:
-                            DFT_flat[k_df] = int(coeff_round(DFT[i1,j1,k1]))
-                            k_df += 1
-        i_s, j_s, k_s = [k,x_p-i-1], [k,y_p-j-1], [0, 1]
+    for [i,j] in address:
+        i_s, j_s, k_s = [i,x-i-1], [j,y-j-1], [0, 1]
         for i1 in i_s:
             for j1 in j_s:
                 for k1 in k_s:
                     DFT_flat[k_df] = int(coeff_round(DFT[i1,j1,k1]))
                     k_df += 1
-        if k != 0:
-            j = k
-            for i in range(k):
-                i_s, j_s, k_s = [i,x_p-i-1], [j,y_p-j-1], [0, 1]
-                for i1 in i_s:
-                    for j1 in j_s:
-                        for k1 in k_s:
-                            DFT_flat[k_df] = int(coeff_round(DFT[i1,j1,k1]))
-                            k_df += 1
-    
+    if test_mode: print(DFT_flat)
+
     # k_df below is used to mark the last written coefficent
     line_limit = 62 ** 68
     k_df = 0
     msg_bulk = ""
     for k in range(1,len(DFT_flat)):
-        if int(max(DFT_flat[k_df:k])) ** (k - k_df) > line_limit:
-            m_df = int(max(DFT_flat[k_df:k-1]))
+        if int(max(DFT_flat[k_df:k]) + 1) ** (k - k_df) > line_limit:
+
+            # define the maximum for the selected coefficients.  Add one
+            # to allow the modulo function to produce the max value
+            # (otherwise, when the code runs coeff % max = 0 when we want
+            # the maximum out.)
+            m_df = int(max(DFT_flat[k_df:k-1])) + 1
+            if test_mode:
+                print("coefficients " + str(k_df) + " through " + str(k-2))
+                print(DFT_flat[k_df:k-1])
             # start a new line with the character for the max coefficient
             # on the line
             if msg_bulk != "": msg_bulk = msg_bulk + "\n"
             msg_bulk += dec2aA1(m_df)
             
-            # convert it to a base_max number
+            # convert it from a base_max number
             line_int = 0
             for df in DFT_flat[k_df:k-1]:
                 line_int = (m_df * line_int) + int(df)
+                if test_mode: print(line_int)
             
             # convert it to a base_62 number
             while line_int > 0:
                 msg_bulk += dec2aA1(int(line_int % 62))
-                line_int = (line_int - (line_int % 62)) / 62
+                line_int = int((line_int - (line_int % 62)) / 62)
+                if test_mode: print(f"{line_int:d}") 
             
             k_df = k - 1
 
     k = len(DFT_flat)
-    m_df = int(max(DFT_flat[k_df:k-1]))
+    m_df = int(max(DFT_flat[k_df:k])) + 1
+    print(DFT_flat[k_df:k])
+
     # start a new line with the character for the max coefficient
     # on the line
     if msg_bulk != "": msg_bulk = msg_bulk + "\n"
@@ -1064,13 +1112,15 @@ if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
     
     # convert it to a base_max number
     line_int = 0
-    for df in DFT_flat[k_df:k-1]:
-        line_int = (m_df * line_int) + int(df)
+    for df in DFT_flat[k_df:k-1][::-1]:
+        line_int = ((m_df) * line_int) + int(df)
+        if test_mode: print(line_int)
     
     # convert it to a base_62 number
     while line_int > 0:
         msg_bulk += dec2aA1(int(line_int % 62))
-        line_int = (line_int - (line_int % 62)) / 62
+        line_int = int((line_int - (line_int % 62)) / 62)
+        if test_mode: print(f"{line_int:d}") 
     k_df = k - 1
 
     if len(msg_bulk.splitlines()[-1]) > 67: msg_bulk += "\n"
@@ -1090,8 +1140,8 @@ if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
             message_template_intro = message_template.split("<message>\n")[0]
             message_template_outro = message_template.split("<message>\n")[1]
             for m_t in message_template_intro.splitlines(): print(m_t, file = file)
-        print(str(x_p) + "/" + 
-              str(y_p) + "/" + 
+        print(str(x) + "/" + 
+              str(y) + "/" + 
               str(n) + "/" + 
               str(int(np.max(plot))) + "/" + 
               dtg + "/" +
