@@ -74,8 +74,9 @@ class msg_read:
                     DFT_flat = np.zeros(n * n * 8).astype(int)
             elif not footer:
                 m_mr = aA12dec(m[0])
+                m = m[1:]
                 line_int = 0
-                for a in m[1:][::-1]:
+                for a in m[::-1]:
                     if a == "/":
                         footer = True
                     else:
@@ -85,6 +86,7 @@ class msg_read:
                 while line_int > 0:
                     DFT_flat_dummy.append(int(line_int % (m_mr)))
                     line_int = int((line_int - (line_int % (m_mr))) / (m_mr))
+                    print(line_int)
                 print(DFT_flat_dummy)
                 for dfd in DFT_flat_dummy[::-1]:
                     DFT_flat[k_mr] = dfd
@@ -331,11 +333,12 @@ def dec2aA1(i):
 
 def aA12dec(s):
     try:
-        return                int(s)
+        if int(s) < 10: return int(s)
     except:
-        if ord(s) < ord('a'): 
-            return            int(ord(s) + 10 - ord('A'))
-        else: return          int(ord(s) + 36 - ord('a'))
+        None
+    if ord(s) < ord('a'): 
+        return                 int(ord(s) + 10 - ord('A'))
+    else: return               int(ord(s) + 36 - ord('a'))
 
 def coeff_round(x):
     k_cr = 54
@@ -1103,7 +1106,9 @@ if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
 
     k = len(DFT_flat)
     m_df = int(max(DFT_flat[k_df:k])) + 1
-    print(DFT_flat[k_df:k])
+    if test_mode:
+        print("coefficients " + str(k_df) + " through " + str(k-1))
+        print(DFT_flat[k_df:k])
 
     # start a new line with the character for the max coefficient
     # on the line
@@ -1112,14 +1117,15 @@ if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
     
     # convert it to a base_max number
     line_int = 0
-    for df in DFT_flat[k_df:k-1][::-1]:
+    for df in DFT_flat[k_df:k]:
         line_int = ((m_df) * line_int) + int(df)
         if test_mode: print(line_int)
     
     # convert it to a base_62 number
     while line_int > 0:
-        msg_bulk += dec2aA1(int(line_int % 62))
-        line_int = int((line_int - (line_int % 62)) / 62)
+        line_add = int(line_int % 62)
+        msg_bulk += dec2aA1(line_add)
+        line_int = int((line_int - line_add) / 62)
         if test_mode: print(f"{line_int:d}") 
     k_df = k - 1
 
