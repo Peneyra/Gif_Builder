@@ -69,7 +69,7 @@ class msg_read:
                     self.dtg = m.split("/")[4]
                     self.subject = m.split("/")[5]
                     # initialize the DFT
-                    self.DFT = np.zeros((int(S[0]),int(S[1]),2))
+                    self.DFT = np.zeros((x,y,2))
                     address = DFT_mapping(n)
                     DFT_flat = np.zeros(n * n * 8).astype(int)
             elif not footer:
@@ -80,12 +80,12 @@ class msg_read:
                     if a == "/":
                         footer = True
                     else:
-                        line_int = (62 * line_int) + int(aA12dec(a))
+                        line_int = (62 * line_int) + aA12dec(a)
                         print(line_int)
                 DFT_flat_dummy = []
                 while line_int > 0:
                     DFT_flat_dummy.append(int(line_int % (m_mr)))
-                    line_int = int((line_int - (line_int % (m_mr))) / (m_mr))
+                    line_int = int((line_int - (line_int % (m_mr))) // (m_mr))
                     print(line_int)
                 print(DFT_flat_dummy)
                 for dfd in DFT_flat_dummy[::-1]:
@@ -361,13 +361,6 @@ def coeff_unround(x):
             k_cu += 1
             if x == k_cu: return        j * (10 ** i)
             k_cu += 1
-
-    for i in range(n_cu):
-        for j in range(9):
-            if x > (9.5-j) * (10 ** (2 - i)): return k_cu
-            k_cu -= 1
-            if x < (j-9.5) * (10 ** (2 - i)): return k_cu
-            k_cu -= 1
     return 0
 
 def DFT_mapping(n):
@@ -395,45 +388,26 @@ def DFT_mapping(n):
     
     return address
 
-def c_int(i_ci):
-    ##################################################
-    # User Defined: start of negative chr codes
-    # define the chr() function displacement (ASCII code) for 'A' and 'a'
-    def c_int_round(k_r):
-        k_ir = 54
-        n_ir = 3
-        for i in range(n_ir):
-            for j in range(9):
-                if k_r > (8.5-j) * (10 ** (2 - i)): return k_ir
-                k_ir -= 1
-                if k_r < (j-8.5) * (10 ** (2 - i)): return k_ir
-                k_ir -= 1
-        return 0
+def msg_nextline_build(flat):
     
-    i_ci = c_int_round(i_ci)
-    
-    if i_ci < 10:      return str(i_ci)
-    if i_ci < 27 + 10: return chr(i_ci + ord('A') - 10)
-    return chr(i_ci + ord('a') - 36)
+    # define the maximum for the selected coefficients.  Add one
+    # to allow the modulo function to produce the max value
+    # (otherwise, when the code runs coeff % max = 0 when we want
+    # the maximum out.)
+    m = int(max(flat)) + 1
+    line_str = dec2aA1(m)
 
-# function to uncompress the message wall of text
-def c_str(i_cs):
-    try:
-        m_cs = int(i_cs)
-    except:
-        if ord(i_cs) < ord('a'): m_cs = ord(i_cs) + 10 - ord('A')
-        else: m_cs = ord(i_cs) + 36 - ord('a')
-    
-    if m_cs == 0: return 0
-    if m_cs == 54: return 1000
-    
-    n_cs, k_cs = 3, 0
-    for i in range(n_cs):
-        for j in range(9):
-            k_cs += 1
-            if k_cs == m_cs: return (-1) * (j + 1) * (10 ** i)
-            k_cs += 1
-            if k_cs == m_cs: return (j + 1) * (10 ** i)
+    line_int = int(0)
+    for f in flat:
+        line_int = (m * line_int) + int(f)
+        if test_mode: print(line_int)
+
+    while line_int > 0:
+        line_str += dec2aA1(line_int % 62)
+        line_int = (line_int - (line_int % 62)) // 62
+        # if test_mode: print(f"{line_int:d}")
+
+    return line_str
 
 def allowalphanumeric(text):
     return text == "" or text.isalnum()
@@ -915,8 +889,8 @@ if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
     # turn the image into a scalar plot and then smooth it over
     plot = plot_scale(image.copy())
     plot = np.array(plot).astype(float)
-    plot = plot_smooth(plot,20)
-    plot = plot_mirror_edge(plot)
+    plot = plot_smooth(plot,2)
+    #plot = plot_mirror_edge(plot)
 
     ################################################################
     # r u n    D F T 
@@ -931,7 +905,7 @@ if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
     (x_p, y_p) = plot.shape
     
     # only retain a nxn box in each quadrant of the DFT
-    n = 10
+    n = 12
     DFT[n:x_p-1-n,:,:] = np.zeros_like(DFT[n:x_p-1-n,:,:])
     DFT[:,n:y_p-1-n,:] = np.zeros_like(DFT[:,n:y_p-1-n,:])
 
@@ -1067,6 +1041,7 @@ if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
             for j1 in j_s:
                 for k1 in k_s:
                     DFT_flat[k_df] = int(coeff_round(DFT[i1,j1,k1]))
+                    if test_mode: print(str(DFT[i1,j1,k1]) + " " + str(coeff_unround(coeff_round(DFT[i1,j1,k1]))))
                     k_df += 1
     if test_mode: print(DFT_flat)
 
@@ -1076,58 +1051,22 @@ if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
     msg_bulk = ""
     for k in range(1,len(DFT_flat)):
         if int(max(DFT_flat[k_df:k]) + 1) ** (k - k_df) > line_limit:
-
-            # define the maximum for the selected coefficients.  Add one
-            # to allow the modulo function to produce the max value
-            # (otherwise, when the code runs coeff % max = 0 when we want
-            # the maximum out.)
-            m_df = int(max(DFT_flat[k_df:k-1])) + 1
             if test_mode:
                 print("coefficients " + str(k_df) + " through " + str(k-2))
                 print(DFT_flat[k_df:k-1])
             # start a new line with the character for the max coefficient
             # on the line
             if msg_bulk != "": msg_bulk = msg_bulk + "\n"
-            msg_bulk += dec2aA1(m_df)
-            
-            # convert it from a base_max number
-            line_int = 0
-            for df in DFT_flat[k_df:k-1]:
-                line_int = (m_df * line_int) + int(df)
-                if test_mode: print(line_int)
-            
-            # convert it to a base_62 number
-            while line_int > 0:
-                msg_bulk += dec2aA1(int(line_int % 62))
-                line_int = int((line_int - (line_int % 62)) / 62)
-                if test_mode: print(f"{line_int:d}") 
+            msg_bulk += msg_nextline_build(DFT_flat[k_df:k-1])
             
             k_df = k - 1
 
     k = len(DFT_flat)
-    m_df = int(max(DFT_flat[k_df:k])) + 1
     if test_mode:
         print("coefficients " + str(k_df) + " through " + str(k-1))
         print(DFT_flat[k_df:k])
-
-    # start a new line with the character for the max coefficient
-    # on the line
     if msg_bulk != "": msg_bulk = msg_bulk + "\n"
-    msg_bulk += dec2aA1(m_df)
-    
-    # convert it to a base_max number
-    line_int = 0
-    for df in DFT_flat[k_df:k]:
-        line_int = ((m_df) * line_int) + int(df)
-        if test_mode: print(line_int)
-    
-    # convert it to a base_62 number
-    while line_int > 0:
-        line_add = int(line_int % 62)
-        msg_bulk += dec2aA1(line_add)
-        line_int = int((line_int - line_add) / 62)
-        if test_mode: print(f"{line_int:d}") 
-    k_df = k - 1
+    msg_bulk += msg_nextline_build(DFT_flat[k_df:k]) 
 
     if len(msg_bulk.splitlines()[-1]) > 67: msg_bulk += "\n"
     msg_bulk += "//"
