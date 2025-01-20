@@ -19,7 +19,7 @@ from PIL import ImageTk, Image
 # 8. Interpret build the scalar array into the original input image
 # 9. Overlay a standard image template over the top of the scalar array
 
-test_mode = True
+test_mode = False
 
 #####################################################################
 # B u i l d   C l a s s e s 
@@ -55,7 +55,6 @@ class msg_read:
         header = True
         footer = False
         k_mr = 0
-        k_start = 0
         for m in msg.splitlines():
             if header:
                 if "A1R1G2U3S5" in m:
@@ -81,18 +80,24 @@ class msg_read:
                         footer = True
                     else:
                         line_int = (62 * line_int) + aA12dec(a)
-                        print(line_int)
+                        if test_mode: print(line_int)
                 DFT_flat_dummy = []
                 while line_int > 0:
-                    DFT_flat_dummy.append(int(line_int % (m_mr)))
-                    line_int = int((line_int - (line_int % (m_mr))) // (m_mr))
-                    print(line_int)
-                print(DFT_flat_dummy)
+                    if line_int == m_mr:
+                        line_int = 0
+                    else:
+                        DFT_flat_dummy.append(int(line_int % (m_mr)))
+                        line_int = int((line_int - (line_int % (m_mr))) // (m_mr))
+                    if test_mode: print(line_int)
+                if test_mode: print(DFT_flat_dummy)
                 for dfd in DFT_flat_dummy[::-1]:
                     DFT_flat[k_mr] = dfd
                     k_mr += 1
         k_df = 0
-        if test_mode: print(DFT_flat)
+        if test_mode:
+            with open("./DFT_flat_read.txt",'w') as file:
+                for f in DFT_flat:
+                    if test_mode: print(f, file = file)                       
         for [i,j] in address:
             i_s, j_s, k_s = [i,x-i-1], [j,y-j-1], [0, 1]
             for i1 in i_s:
@@ -242,6 +247,38 @@ def plot_smooth(arr,repeat):
         if test_mode: cv.imwrite('./test_' + str(r) + '.jpg', 10 * arr_out)
     return arr_out
 
+# function to smooth out the colors and crop out the borders
+def plot_round(arr):
+    repeat = 10
+    arr_out = np.copy(arr)
+    # use queen smoothing to get rid of non-colored lines
+    for r in range(repeat):
+        arr_tmp = np.roll(np.roll(np.copy(arr_out), -1, axis = 0), -1, axis = 1).astype(np.float64)
+        # zero the edges
+        arr_tmp[0, :] = np.zeros_like(arr_tmp[0, :])
+        arr_tmp[-1,:] = np.zeros_like(arr_tmp[-1,:])
+        arr_tmp[:, 0] = np.zeros_like(arr_tmp[:, 0])
+        arr_tmp[:,-1] = np.zeros_like(arr_tmp[:,-1])
+        arr_add = np.zeros_like(arr_out).astype(np.float64)
+        arr_cnt = np.zeros_like(arr_out).astype(float)
+
+        # queen smoothing
+        for (i, j) in [(1,0),(1,0),(1,1),(1,1),(-1,0),(-1,0),(-1,1),(-1,1)]:
+            arr_tmp = np.roll(arr_tmp, i, axis = j)
+            arr_add = arr_add + arr_tmp
+            arr_cnt = arr_cnt + np.array(arr_tmp != 0).astype(type(arr_cnt[0,0]))
+
+        arr_cnt = arr_cnt * repeat / (repeat - r)
+
+        arr_add = np.divide(arr_add, arr_cnt, out = np.zeros_like(arr_add), where=arr_cnt!=0)
+
+        if test_mode: cv.imwrite('./test_add_' + str(r) + '.jpg', 10 * arr_add)
+        if test_mode: cv.imwrite('./test_cnt_' + str(r) + '.jpg', 10 * arr_cnt)
+
+        arr_out = arr_out + np.array(np.multiply(arr_add,arr_out == 0)).astype(np.uint8)
+
+        if test_mode: cv.imwrite('./test_' + str(r) + '.jpg', 10 * arr_out)
+    return arr_out
 
 def plot_mirror_edge(arr):
     # start by determining the top-bottom-left-right boundaries of the plot
@@ -397,7 +434,11 @@ def msg_nextline_build(flat):
     m = int(max(flat)) + 1
     line_str = dec2aA1(m)
 
-    line_int = int(0)
+    if flat[0] == 0:
+        line_int = m
+    else:
+        line_int = int(0)
+
     for f in flat:
         line_int = (m * line_int) + int(f)
         if test_mode: print(line_int)
@@ -890,7 +931,9 @@ if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
     plot = plot_scale(image.copy())
     plot = np.array(plot).astype(float)
     plot = plot_smooth(plot,2)
-    #plot = plot_mirror_edge(plot)
+    plot = plot_mirror_edge(plot)
+    plot = plot_round(plot)
+    cv.imwrite("./test_build_plot_smooth.jpg", plot * (256 / np.max(plot)))
 
     ################################################################
     # r u n    D F T 
@@ -1043,7 +1086,10 @@ if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
                     DFT_flat[k_df] = int(coeff_round(DFT[i1,j1,k1]))
                     if test_mode: print(str(DFT[i1,j1,k1]) + " " + str(coeff_unround(coeff_round(DFT[i1,j1,k1]))))
                     k_df += 1
-    if test_mode: print(DFT_flat)
+    if test_mode: 
+        with open("./DFT_flat_write.txt",'w') as file:
+            for f in DFT_flat:
+                print(f, file = file)
 
     # k_df below is used to mark the last written coefficent
     line_limit = 62 ** 68
