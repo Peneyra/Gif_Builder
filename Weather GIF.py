@@ -352,8 +352,8 @@ def image_restore(plot,subject,scale):
         cv.imwrite("./test_restore_cropped4.jpg",image_template[:, c.crop_x2:, :].copy())
         cv.imwrite("./test_restore_crop4.jpg",image)
 
-    image = cv.putText(image, m.subject + " - " + m.dtg, (c.crop_x1, c.crop_y2 + 30), cv.FONT_HERSHEY_SIMPLEX,
-                       .5, (0,0,0), 2, cv.LINE_AA, False)
+    image = cv.putText(image, m.subject + " - " + m.dtg, (c.crop_x1, c.crop_y2 + 5), cv.FONT_HERSHEY_SIMPLEX,
+                       .5, (0,0,0), 1, cv.LINE_AA, False)
 
     return image
 
