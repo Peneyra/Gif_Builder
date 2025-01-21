@@ -20,8 +20,10 @@
 \usepackage[utf8]{inputenc}
 \usepackage{amssymb}
 \usepackage{amsmath}
+\usepackage{amsthm}
 \usepackage{array}
 \usepackage{listings}
+\usepackage{color}
 \usepackage{xcolor}
 \usepackage{graphicx}
 \usepackage{fancyhdr}
@@ -37,19 +39,18 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Change rhead to name, Change lhead to Homework # or Title
 \rhead{Sean Peneyra}
-\lhead{Homework 2}
 
 \rfoot{\thepage}
 \begin{document}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Change title to Class name. \\ indicates a line break.  Use the \Large{} to add subtitle
-\title{MATH 645 - Survey of Math Problems I\\ \Large{Homework 2}}
+\title{Advanced Radio-Graphical Undersea System (ARGUS) Documentation}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Change author and date accordingly
 \author{Sean Peneyra}
-\date{September 11, 2019}
+\date{21 January 2025}
 
 \maketitle
 \newcommand{\multideg}[1]{\text{multideg}(#1)}
@@ -90,18 +91,148 @@
 \newcommand{\eay}[0]{\end{align}}
 \newcommand{\ban}[0]{\begin{align}}
 \newcommand{\ean}[0]{\end{align}}
+\newtheorem*{addnote}{Note}
+\newtheorem*{addwarn}{Warning}
+\newtheorem*{addsoln}{Solution}
 \setcounter{section}{0}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Your paper starts here. Put a blurb before you start the first \section if you like
-\section{Part I.}
+This program is designed to compress a weather image into as small a text file as possible without sacrificing accuracy.  It was designed by Aevix (aka Sean Peneyra, former submarine officer).
 
+\section{Procedures.}
+\subsection{For the Boats}
+If you are on a boat, you can use the following general procedure:
+
+\subsubsection{While in active communications}
+\begin{enumerate}
+    \item Download the most recent version of ARGUS.exe as well as the most recent Template folder.  At the time of the program creation, these files were provided by JHU reps in port.
+    \item Put those files onto an approved system.  At the time of this program creation, only the JHU stand-alone laptop was approved for use with the program.  In the future, I hope this program is made available on CANES and NMCI computers.
+\end{enumerate}
+
+\subsubsection{While in Emmisions Control (EMCON)}
+\begin{enumerate}
+    \item Recieve a weather gif message on VLF
+    \begin{addnote} This will be a message which contains the characters "A1R1G2U3S5" and whos body is promarily non-human readable gibberish made up of A-Z, a-z, and 0-9 characters.\end{addnote}
+    \item Put the entire message into a text file (.txt) and transfer the file to the information system which can run the ARGUS.exe program
+    \begin{addnote} If that system is the JHU standalone laptop, this will entail burning a CD in radio and loading the message file onto the standalone laptop.  If the information system is CANES, there will be no need to burn a CD, but you will have to save the message as a .txt somewhere. \end{addnote}
+    \item Open the ARGUS.exe program $\rightarrow$ It will open a file browser
+    \item Navigate to the .txt file containing the VLF message and double click the .txt file
+    \item Your image should open $\rightarrow$ the image will also be saved in the same folder as the .txt file.
+\end{enumerate}
+
+\subsubsection{Troubleshooting}
+If you get an error, the problem may be one of the following.
+\begin{enumerate}
+    \item you do not have the most recent template folder from the BCA.  
+    \begin{addsoln} The template used to create the message shoreside must be the same as the template onboard the boat for the image to compile correctly. Go download the new set of templates once out of EMCON.\end{addsoln}
+    \item you are trying to open the file directly from a portable media storage device (aka the CD you used to pull the message from radio) 
+    \begin{addsoln} The program tries to save the image output in the same folder as the .txt file. If your .txt file is on a CD, it will struggle to add data to the CD, then give up. Save the message to a local folder.\end{addsoln}
+    \item you do not have the most recent ARGUS program  
+    \begin{addsoln} I am actively working to make the program: more accurate, better at compression (smaller VLF messages), smoother functioning, more user friendly, more efficent, and faster running.  Please excuse the active construction. Go obtain the most recent program.  Instructions for shoreside on how to get it to the boats is below.\end{addsoln}
+    \item the VLF message was garbled
+    \begin{addsoln} This program uses complex mathematics (literally) to maximize compression of the information. If any of the characters are missing or substituted, the program will fail to rebuild the image. Pull a clean copy of the message.\end{addsoln}
+\end{enumerate}
+
+
+\subsection{For Shoreside}
+
+\subsubsection{Before you start}
+\begin{enumerate}
+    \item Ensure you have the latest version of ARGUS.
+    \item Ensure the folder which contains the file "ARGUS.exe" contains:
+    \begin{itemize}
+        \item ARGUS.exe
+        \item ARGUS.pdf
+        \item README.md
+        \item Message Template.txt (more details on how to use the message template below)
+        \item a folder called templates (may not be there and that is okay)
+        \item ----- and no others -----
+    \end{itemize}
+\end{enumerate}
+
+\subsubsection{Creating a message for the units}
+\begin{enumerate}
+    \item verify initial conditions from "BEFORE YOU START"
+    \item obtain a weather graphic from METOC
+    \item open ARGUS.exe $\rightarrow$ it will open a file explorer
+    \item use the file explorer from ARGUS.exe to open the weather gif.
+    \begin{addnote} Acceptable file types are .gif and .jpg \end{addnote}
+    \item select the correct template from the drop-down (if there is no correct template, follow instructions for CREATING A TEMPLATE below)
+    \item enter the DTG for which the graphic is valid
+    \item click "Select Template"
+    \item ARGUS will save a message which you will send to the units when there is space available on the applicable VLF broadcast $\rightarrow$ it will also try and open the .txt file for viewing
+\end{enumerate}
+
+\subsubsection{Create a new template}
+\begin{addwarn}
+    Warning: The boats will not be able to use a new template until they download the template while out of EMCON. I reccomend using existing templates whenever possible.
+\end{addwarn}
+\begin{enumerate}
+    \item follow steps 1-4 from CREATING A MESSAGE FOR THE UNITS
+    \item click "New Template"
+    \item follow the on-screen instructions
+    \item ARGUS will create a templates folder (if not already there) and create a template for the selected .gif in the templates folder
+    \begin{addnote} There should be two files in each folder in templates: a .gif where all the colors are a solid red and a .config file \end{addnote}
+    \item ARGUS will save a message which should be sent to the units as space allows on the broadcast $\rightarrow$ it will also try and open this file for viewing
+    \item navigate to the folder which contains ARGUS.exe and the templates folder which contains the new template
+    \item right click the folder containing all the files and folders listed in BEFORE YOU START
+    \item hover over "compress to" and click ".zip" (for windows 11) - or - hover over "send to" and click "compressed (zipped) folder" (for earlier versions of windows)
+    \item send the zipped file to the boats somehow (either post on a public CFFO website or send to the boats on a disc)
+\end{enumerate}
+
+\subsection{Using the message tempalte}
+In the folder which contains ARGUS.exe, there should be a .txt file named "Message Template.txt".  If it isn't there for some reason, feel free to save a .txt file with that identical name. The only rules for the message template are:
+\begin{enumerate}
+    \item It must contain the line "<message>" (exactly those characters, without quotes, and on its own line).  This lets the program know where to put the useful information for the image.
+    \item Do not use the characters "A1R1G2U3S5" in that order anywhere in the text of the message template.  Those characters indicate to my program where in the final message the useful information for the image starts.
+\end{enumerate}
+
+\begin{addnote} Below is what I have loaded as a template by default. Feel free to edit it and save as your own template keeping in mind the rules above:\end{addnote}
+\begin{lstlisting}[numbers=none,rulecolor=\color{black}]
+R XXXXXXZ MMM YY
+FM COMSUBPAC PEARL HARBOR HI
+TO SSBN PAC
+BT
+UNCLAS
+SUBJ/VLF WEATHER GIF//
+RMKS/SEE INSTRUCTIONS ON CSP WEBSITE ON HOW TO USE THIS MESSAGE.
+<message>
+BT
+#0001
+NNNN
+\end{lstlisting}
+
+\section{General Notes.}
+ The goal for this progam is to:
+ \begin{enumerate}
+    \item Read an input file
+    \item If the input file is an image:
+    \begin{enumerate}
+        \item Open a GUI to either build or select an existing template
+        \item Simplify the image into an array of scalars based on a legend
+        \item Build a DFT off of the scalar array
+        \item Truncate the DFT
+        \item Produce a naval message on compressed list of coefficients
+    \end{enumerate}
+    \item If the file is a text file:
+    \begin{enumerate}
+        \item Rebuild the DFT from the naval message
+        \item Perform an IDFT to reproduce a scalar array
+        \item Interpret build the scalar array into the original input image
+        \item Overlay a standard image template over the top of the scalar array
+    \end{enumerate}
+\end{enumerate}
+
+     Feel free to reach out with any comments or questions.
+     Sean Peneyra
+     peneyra.s@gmail.com
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % bibliography starts here.  update the number of bibitems after (thebibliography)
-\newpage
-\begin{thebibliography}{1}
-\bibitem{Book1}
-Book information
-\end{thebibliography}
+% \newpage
+% \begin{thebibliography}{1}
+% \bibitem{Book1}
+% Book information
+% \end{thebibliography}
 \end{document}
