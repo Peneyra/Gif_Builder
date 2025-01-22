@@ -1,12 +1,12 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024) (preloaded format=pdflatex 2024.12.4)  21 JAN 2025 13:52
+This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024) (preloaded format=pdflatex 2025.1.21)  22 JAN 2025 10:56
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
  %&-line parsing enabled.
-**"c:/python/projects/git/Gif_Builder/Weather Gif.tex"
-(c:/python/projects/git/Gif_Builder/Weather Gif.tex
+**"c:/Python/Projects/Navy/gif builder/git/Weather Gif.tex"
+(c:/Python/Projects/Navy/gif builder/git/Weather Gif.tex
 LaTeX2e <2024-11-01> patch level 1
-L3 programming layer <2024-11-02>
+L3 programming layer <2024-12-25>
 (c:/texlive/2024/texmf-dist/tex/latex/base/article.cls
 Document Class: article 2024/06/29 v1.4n Standard LaTeX document class
 (c:/texlive/2024/texmf-dist/tex/latex/base/size10.clo
@@ -31,7 +31,7 @@ Package: keyval 2022/05/29 v1.15 key=value parser (DPC)
 ) (c:/texlive/2024/texmf-dist/tex/generic/iftex/ifvtex.sty
 Package: ifvtex 2019/10/25 v1.7 ifvtex legacy package. Use iftex instead.
  (c:/texlive/2024/texmf-dist/tex/generic/iftex/iftex.sty
-Package: iftex 2022/02/03 v1.0f TeX engine tests
+Package: iftex 2024/12/12 v1.0g TeX engine tests
 ))
 \Gm@cnth=\count270
 \Gm@cntv=\count271
@@ -46,10 +46,10 @@ Package: iftex 2022/02/03 v1.0f TeX engine tests
 \Gm@layoutvoffset=\dimen149
 \Gm@dimlist=\toks18
 ) (c:/texlive/2024/texmf-dist/tex/generic/babel/babel.sty
-Package: babel 2024/11/30 v24.14 The multilingual framework for pdfLaTeX, LuaLaTeX and XeLaTeX
+Package: babel 2025/01/01 v25.1 The multilingual framework for pdfLaTeX, LuaLaTeX and XeLaTeX
 \babel@savecnt=\count273
 \U@D=\dimen150
-\l@unhyphenated=\language89
+\l@unhyphenated=\language90
  (c:/texlive/2024/texmf-dist/tex/generic/babel/txtbabel.def)
 \bbl@readstream=\read2
 \bbl@dirlevel=\count274
@@ -58,9 +58,9 @@ Language: english 2017/06/06 v3.3r English support from the babel system
 Package babel Info: Hyphen rules for 'canadian' set to \l@english
 (babel)             (\language0). Reported on input line 102.
 Package babel Info: Hyphen rules for 'australian' set to \l@ukenglish
-(babel)             (\language23). Reported on input line 105.
+(babel)             (\language24). Reported on input line 105.
 Package babel Info: Hyphen rules for 'newzealand' set to \l@ukenglish
-(babel)             (\language23). Reported on input line 108.
+(babel)             (\language24). Reported on input line 108.
 )) (c:/texlive/2024/texmf-dist/tex/generic/babel/locale/en/babel-english.tex
 Package babel Info: Importing font and identification data for english
 (babel)             from babel-en.ini. Reported on input line 11.
@@ -225,21 +225,27 @@ Package graphics Info: Driver file: pdftex.def on input line 106.
 \Gin@req@height=\dimen166
 \Gin@req@width=\dimen167
 ) (c:/texlive/2024/texmf-dist/tex/latex/fancyhdr/fancyhdr.sty
-Package: fancyhdr 2024/11/20 v4.4 Extensive control of page headers and footers
+Package: fancyhdr 2025/01/07 v5.1.1 Extensive control of page headers and footers
 \f@nch@headwidth=\skip59
-\f@nch@O@elh=\skip60
-\f@nch@O@erh=\skip61
-\f@nch@O@olh=\skip62
-\f@nch@O@orh=\skip63
-\f@nch@O@elf=\skip64
-\f@nch@O@erf=\skip65
-\f@nch@O@olf=\skip66
-\f@nch@O@orf=\skip67
+\f@nch@offset@elh=\skip60
+\f@nch@offset@erh=\skip61
+\f@nch@offset@olh=\skip62
+\f@nch@offset@orh=\skip63
+\f@nch@offset@elf=\skip64
+\f@nch@offset@erf=\skip65
+\f@nch@offset@olf=\skip66
+\f@nch@offset@orf=\skip67
+\f@nch@height=\skip68
+\f@nch@footalignment=\skip69
+\f@nch@widthL=\skip70
+\f@nch@widthC=\skip71
+\f@nch@widthR=\skip72
+\@temptokenb=\toks35
 ) (c:/texlive/2024/texmf-dist/tex/latex/jknapltx/mathrsfs.sty
 Package: mathrsfs 1996/01/01 Math RSFS package v1.0 (jk)
 \symrsfs=\mathgroup6
 ) (c:/texlive/2024/texmf-dist/tex/latex/pgf/frontendlayer/tikz.sty (c:/texlive/2024/texmf-dist/tex/latex/pgf/basiclayer/pgf.sty (c:/texlive/2024/texmf-dist/tex/latex/pgf/utilities/pgfrcs.sty (c:/texlive/2024/texmf-dist/tex/generic/pgf/utilities/pgfutil-common.tex
-\pgfutil@everybye=\toks35
+\pgfutil@everybye=\toks36
 \pgfutil@tempdima=\dimen168
 \pgfutil@tempdimb=\dimen169
 ) (c:/texlive/2024/texmf-dist/tex/generic/pgf/utilities/pgfutil-latex.def
@@ -251,10 +257,10 @@ Package: pgf 2023-01-15 v3.1.10 (3.1.10)
  (c:/texlive/2024/texmf-dist/tex/latex/pgf/basiclayer/pgfcore.sty (c:/texlive/2024/texmf-dist/tex/latex/pgf/systemlayer/pgfsys.sty (c:/texlive/2024/texmf-dist/tex/generic/pgf/systemlayer/pgfsys.code.tex
 Package: pgfsys 2023-01-15 v3.1.10 (3.1.10)
  (c:/texlive/2024/texmf-dist/tex/generic/pgf/utilities/pgfkeys.code.tex
-\pgfkeys@pathtoks=\toks36
-\pgfkeys@temptoks=\toks37
+\pgfkeys@pathtoks=\toks37
+\pgfkeys@temptoks=\toks38
  (c:/texlive/2024/texmf-dist/tex/generic/pgf/utilities/pgfkeyslibraryfiltered.code.tex
-\pgfkeys@tmptoks=\toks38
+\pgfkeys@tmptoks=\toks39
 ))
 \pgf@x=\dimen170
 \pgf@y=\dimen171
@@ -272,9 +278,9 @@ Package: pgfsys 2023-01-15 v3.1.10 (3.1.10)
 \c@pgf@countb=\count296
 \c@pgf@countc=\count297
 \c@pgf@countd=\count298
-\t@pgf@toka=\toks39
-\t@pgf@tokb=\toks40
-\t@pgf@tokc=\toks41
+\t@pgf@toka=\toks40
+\t@pgf@tokb=\toks41
+\t@pgf@tokc=\toks42
 \pgf@sys@id@count=\count299
  (c:/texlive/2024/texmf-dist/tex/generic/pgf/systemlayer/pgf.cfg
 File: pgf.cfg 2023-01-15 v3.1.10 (3.1.10)
@@ -296,9 +302,9 @@ Package: pgfcore 2023-01-15 v3.1.10 (3.1.10)
 \pgfmath@dimen=\dimen180
 \pgfmath@count=\count302
 \pgfmath@box=\box59
-\pgfmath@toks=\toks42
-\pgfmath@stack@operand=\toks43
-\pgfmath@stack@operation=\toks44
+\pgfmath@toks=\toks43
+\pgfmath@stack@operand=\toks44
+\pgfmath@stack@operation=\toks45
 ) (c:/texlive/2024/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.code.tex) (c:/texlive/2024/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.basic.code.tex) (c:/texlive/2024/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.trigonometric.code.tex) (c:/texlive/2024/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.random.code.tex) (c:/texlive/2024/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.comparison.code.tex) (c:/texlive/2024/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.base.code.tex) (c:/texlive/2024/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.round.code.tex) (c:/texlive/2024/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.misc.code.tex) (c:/texlive/2024/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.integerarithmetics.code.tex) (c:/texlive/2024/texmf-dist/tex/generic/pgf/math/pgfmathcalc.code.tex) (c:/texlive/2024/texmf-dist/tex/generic/pgf/math/pgfmathfloat.code.tex
 \c@pgfmathroundto@lastzeros=\count303
 )) (c:/texlive/2024/texmf-dist/tex/generic/pgf/math/pgfint.code.tex) (c:/texlive/2024/texmf-dist/tex/generic/pgf/basiclayer/pgfcorepoints.code.tex
@@ -381,8 +387,8 @@ Package: pgfcomp-version-1-18 2023-01-15 v3.1.10 (3.1.10)
 Package: pgffor 2023-01-15 v3.1.10 (3.1.10)
 \pgffor@iter=\dimen263
 \pgffor@skip=\dimen264
-\pgffor@stack=\toks45
-\pgffor@toks=\toks46
+\pgffor@stack=\toks46
+\pgffor@toks=\toks47
 )) (c:/texlive/2024/texmf-dist/tex/generic/pgf/frontendlayer/tikz/tikz.code.tex
 Package: tikz 2023-01-15 v3.1.10 (3.1.10)
  (c:/texlive/2024/texmf-dist/tex/generic/pgf/libraries/pgflibraryplothandlers.code.tex
@@ -415,31 +421,38 @@ File: pgfmodulematrix.code.tex 2023-01-15 v3.1.10 (3.1.10)
 \tikz@expandcount=\count315
  (c:/texlive/2024/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tikzlibrarytopaths.code.tex
 File: tikzlibrarytopaths.code.tex 2023-01-15 v3.1.10 (3.1.10)
-))) (c:/texlive/2024/texmf-dist/tex/latex/listings/lstlang1.sty
+))) (c:/texlive/2024/texmf-dist/tex/latex/float/float.sty
+Package: float 2001/11/08 v1.3d Float enhancements (AL)
+\c@float@type=\count316
+\float@exts=\toks48
+\float@box=\box69
+\@float@everytoks=\toks49
+\@floatcapt=\box70
+) (c:/texlive/2024/texmf-dist/tex/latex/listings/lstlang1.sty
 File: lstlang1.sty 2024/09/23 1.10c listings language file
 ) (c:/texlive/2024/texmf-dist/tex/latex/listings/lstmisc.sty
 File: lstmisc.sty 2024/09/23 1.10c (Carsten Heinz)
 ) (c:/texlive/2024/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
 File: l3backend-pdftex.def 2024-05-08 L3 backend support: PDF output (pdfTeX)
-\l__color_backend_stack_int=\count316
-\l__pdf_internal_box=\box69
+\l__color_backend_stack_int=\count317
+\l__pdf_internal_box=\box71
 ) (./Weather Gif.aux)
 \openout1 = `"Weather Gif.aux"'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 44.
-LaTeX Font Info:    ... okay on input line 44.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 44.
-LaTeX Font Info:    ... okay on input line 44.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 44.
-LaTeX Font Info:    ... okay on input line 44.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 44.
-LaTeX Font Info:    ... okay on input line 44.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 44.
-LaTeX Font Info:    ... okay on input line 44.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 44.
-LaTeX Font Info:    ... okay on input line 44.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 44.
-LaTeX Font Info:    ... okay on input line 44.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 45.
+LaTeX Font Info:    ... okay on input line 45.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 45.
+LaTeX Font Info:    ... okay on input line 45.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 45.
+LaTeX Font Info:    ... okay on input line 45.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 45.
+LaTeX Font Info:    ... okay on input line 45.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 45.
+LaTeX Font Info:    ... okay on input line 45.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 45.
+LaTeX Font Info:    ... okay on input line 45.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 45.
+LaTeX Font Info:    ... okay on input line 45.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
@@ -475,35 +488,35 @@ LaTeX Font Info:    ... okay on input line 44.
 * \@reversemarginfalse
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
-\c@lstlisting=\count317
+\c@lstlisting=\count318
 (c:/texlive/2024/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count318
+\scratchcounter=\count319
 \scratchdimen=\dimen274
-\scratchbox=\box70
-\nofMPsegments=\count319
-\nofMParguments=\count320
-\everyMPshowfont=\toks47
-\MPscratchCnt=\count321
+\scratchbox=\box72
+\nofMPsegments=\count320
+\nofMParguments=\count321
+\everyMPshowfont=\toks50
+\MPscratchCnt=\count322
 \MPscratchDim=\dimen275
-\MPnumerator=\count322
-\makeMPintoPDFobject=\count323
-\everyMPtoPDFconversion=\toks48
+\MPnumerator=\count323
+\makeMPintoPDFobject=\count324
+\everyMPtoPDFconversion=\toks51
 ) (c:/texlive/2024/texmf-dist/tex/latex/epstopdf-pkg/epstopdf-base.sty
 Package: epstopdf-base 2020-01-24 v2.11 Base part for package epstopdf
 Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 485.
  (c:/texlive/2024/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg
 File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Live
 ))
-LaTeX Font Info:    Trying to load font information for U+msa on input line 55.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 56.
  (c:/texlive/2024/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 55.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 56.
  (c:/texlive/2024/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
-LaTeX Font Info:    Trying to load font information for U+rsfs on input line 55.
+LaTeX Font Info:    Trying to load font information for U+rsfs on input line 56.
  (c:/texlive/2024/texmf-dist/tex/latex/jknapltx/ursfs.fd
 File: ursfs.fd 1998/03/24 rsfs font definition file (jk)
 )
@@ -513,35 +526,80 @@ File: ursfs.fd 1998/03/24 rsfs font definition file (jk)
 {c:/texlive/2024/texmf-var/fonts/map/pdftex/updmap/pdftex.map}]
 
 [2{c:/texlive/2024/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}]
+<TeX/Build_Template1.jpg, id=20, 389.20406pt x 429.10312pt>
+File: TeX/Build_Template1.jpg Graphic file (type jpg)
+<use TeX/Build_Template1.jpg>
+Package pdftex.def Info: TeX/Build_Template1.jpg  used on input line 189.
+(pdftex.def)             Requested size: 209.58257pt x 231.07057pt.
+
 
 [3]
-LaTeX Font Info:    Trying to load font information for OML+cmr on input line 200.
+<TeX/Build_Template2.jpg, id=24, 390.70969pt x 429.85594pt>
+File: TeX/Build_Template2.jpg Graphic file (type jpg)
+<use TeX/Build_Template2.jpg>
+Package pdftex.def Info: TeX/Build_Template2.jpg  used on input line 199.
+(pdftex.def)             Requested size: 209.58257pt x 230.58392pt.
+
+
+[4 <./TeX/Build_Template1.jpg>]
+<TeX/Build_Template3.jpg, id=28, 391.4625pt x 442.65375pt>
+File: TeX/Build_Template3.jpg Graphic file (type jpg)
+<use TeX/Build_Template3.jpg>
+Package pdftex.def Info: TeX/Build_Template3.jpg  used on input line 205.
+(pdftex.def)             Requested size: 209.58257pt x 236.98964pt.
+
+
+[5 <./TeX/Build_Template2.jpg> <./TeX/Build_Template3.jpg>]
+<TeX/Build_Template4.jpg, id=32, 391.4625pt x 427.5975pt>
+File: TeX/Build_Template4.jpg Graphic file (type jpg)
+<use TeX/Build_Template4.jpg>
+Package pdftex.def Info: TeX/Build_Template4.jpg  used on input line 215.
+(pdftex.def)             Requested size: 209.58257pt x 228.92877pt.
+<TeX/Build_Template5.jpg, id=33, 391.4625pt x 429.10312pt>
+File: TeX/Build_Template5.jpg Graphic file (type jpg)
+<use TeX/Build_Template5.jpg>
+Package pdftex.def Info: TeX/Build_Template5.jpg  used on input line 225.
+(pdftex.def)             Requested size: 209.58257pt x 229.73486pt.
+
+
+[6 <./TeX/Build_Template4.jpg>]
+<TeX/Build_Template6.jpg, id=37, 392.96812pt x 429.10312pt>
+File: TeX/Build_Template6.jpg Graphic file (type jpg)
+<use TeX/Build_Template6.jpg>
+Package pdftex.def Info: TeX/Build_Template6.jpg  used on input line 231.
+(pdftex.def)             Requested size: 209.58257pt x 228.85748pt.
+
+
+[7 <./TeX/Build_Template5.jpg> <./TeX/Build_Template6.jpg>]
+LaTeX Font Info:    Trying to load font information for OML+cmr on input line 257.
  (c:/texlive/2024/texmf-dist/tex/latex/base/omlcmr.fd
 File: omlcmr.fd 2024/11/19 v2.5n Standard LaTeX font definitions
 )
 LaTeX Font Info:    Font shape `OML/cmr/m/n' in size <8> not available
-(Font)              Font shape `OML/cmm/m/it' tried instead on input line 200.
+(Font)              Font shape `OML/cmm/m/it' tried instead on input line 257.
 
 
-[4] (./Weather Gif.aux)
+[8]
+
+[9] (./Weather Gif.aux)
  ***********
 LaTeX2e <2024-11-01> patch level 1
-L3 programming layer <2024-11-02>
+L3 programming layer <2024-12-25>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 16888 strings out of 473330
- 320098 string characters out of 5723872
- 914123 words of memory out of 5000000
- 39727 multiletter control sequences out of 15000+600000
- 567602 words of font info for 75 fonts, out of 8000000 for 9000
+ 17141 strings out of 473207
+ 325765 string characters out of 5720455
+ 921284 words of memory out of 5000000
+ 40089 multiletter control sequences out of 15000+600000
+ 568370 words of font info for 75 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 84i,11n,87p,470b,1378s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 84i,12n,87p,475b,1378s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <c:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb><c:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb><c:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb><c:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb><c:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb><c:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb><c:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb><c:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb><c:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb><c:/texlive/2024/texmf-dist/fonts/type1/public/cm-super/sfrm1000.pfb>
-Output written on "Weather Gif.pdf" (4 pages, 145928 bytes).
+Output written on "Weather Gif.pdf" (9 pages, 926206 bytes).
 PDF statistics:
- 71 PDF objects out of 1000 (max. 8388607)
- 44 compressed objects within 1 object stream
+ 94 PDF objects out of 1000 (max. 8388607)
+ 56 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
- 13 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 43 words of extra memory for PDF output out of 10000 (max. 10000000)
 

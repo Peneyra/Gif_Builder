@@ -6,6 +6,7 @@ import tkinter as Tk
 from tkinter import messagebox
 from tkinter.filedialog import askopenfilename
 from PIL import ImageTk, Image
+from time import gmtime
 
 
 # The goal for this progam is to:
@@ -268,8 +269,7 @@ def plot_round(arr):
             arr_add = arr_add + arr_tmp
             arr_cnt = arr_cnt + np.array(arr_tmp != 0).astype(type(arr_cnt[0,0]))
 
-        arr_cnt = arr_cnt * repeat / (repeat - r)
-
+        arr_cnt = arr_cnt * 6
         arr_add = np.divide(arr_add, arr_cnt, out = np.zeros_like(arr_add), where=arr_cnt!=0)
 
         if test_mode: cv.imwrite('./test_add_' + str(r) + '.jpg', 10 * arr_add)
@@ -450,6 +450,21 @@ def msg_nextline_build(flat):
 
     return line_str
 
+def month_name(m):
+    if m == 1: return "JAN"
+    elif m == 2: return "FEB" 
+    elif m == 3: return "MAR" 
+    elif m == 4: return "APR" 
+    elif m == 5: return "MAY" 
+    elif m == 6: return "JUN" 
+    elif m == 7: return "JUL" 
+    elif m == 8: return "AUG" 
+    elif m == 9: return "SEP" 
+    elif m == 10: return "OCT" 
+    elif m == 11: return "NOV" 
+    elif m == 12: return "DEC"
+    else: return None
+
 def allowalphanumeric(text):
     return text == "" or text.isalnum()
 
@@ -596,18 +611,26 @@ def build_template(image):
 
     def cancel_click():
         print("cancel clicked")
-        root.destroy()
-        return "quit"
+        global options
+        if options == []:
+            global quitter
+            quitter = "quit"
+            root.destroy()
+        else:
+            global image
+            root.destroy()
+            choose_template(image)
 
     def next_click():
         print("next clicked")
         global template_index
         global label_image
 
+        template_index += 1
+
         #####################################################################
         # A d v a n c e   y o u r   t e m p l a t e
-        if template_index < 5: 
-            template_index += 1
+        if template_index < 6: 
             if template_index == 2: show("image_orig")
             inst_text.config(text = inst_dict[template_index])
             print("template_index = " + str(template_index))
@@ -636,8 +659,6 @@ def build_template(image):
             image_template[:, :c.crop_x1, :] = np.uint8(255)
             image_template[:, c.crop_x2:, :] = np.uint8(255)
 
-
-            
             # build the scale
             for delta in [-10,-5,0,5,10]:
                 if c.scale == []:
@@ -652,7 +673,7 @@ def build_template(image):
 
             # get a plot of the image
             plot_template = plot_scale(image_template)
-            plot_mask = np.repeat(np.array(plot_smooth(plot_template,2,True) == 0).astype(int)[:,:,np.newaxis], 3, axis = 2)
+            plot_mask = np.repeat(np.array(plot_smooth(plot_template,2) == 0).astype(int)[:,:,np.newaxis], 3, axis = 2)
 
             image_template = np.multiply(image_template, plot_mask).astype(np.uint8)
             image_template[:,:,2] = image_template[:,:,2] + 125 * np.array(plot_mask[:,:,2] == 0).astype(int)
@@ -673,7 +694,7 @@ def build_template(image):
         print("back clicked")
         global template_index
         if template_index > 0: 
-            template_index += -1
+            template_index -= 1
             if template_index == 2: 
                 show("image_orig")
             else:
@@ -686,6 +707,7 @@ def build_template(image):
 
     def newtemplate_click():
         global subject_name
+        global image
         if subject_name.get() != "":
             FS.update(subject_name.get())
             if os.path.isfile(FS.template):
@@ -695,6 +717,9 @@ def build_template(image):
             cv.imwrite(FS.template,im_dict["image_template"])
             config_write(c)
             root.destroy()
+            choose_template(image)
+        else:
+            Tk.messagebox.showerror("Missing AOR name","Please name your template.")
 
     def askquestion_exists():
         answer = Tk.messagebox.askquestion("File Already Exists", "A template with this name already exists. Do you want to replace it?", icon = "error")
@@ -765,9 +790,10 @@ def choose_template(image):
         label_image.config(image = template_dict[sub])
 
     def cancel_click():
+        global quitter
         print("cancel clicked")
         root.destroy()
-        return "quit"
+        quitter = "quit"
 
     def new_click():
         # FIX build out what to do if the template does not exist
@@ -778,11 +804,18 @@ def choose_template(image):
 
     def select_click():
         global subject
-        print("select clicked")
-        FS.update(selection.get())
-        root.destroy()
+        global dtg
+        if not "Z" in entryDTG.get().upper():
+            Tk.messagebox.showerror("Missing DTG","Input the DTG shown in the image. Entry must contain a Z.")
+        else:
+            dtg = entryDTG.get()
+            print("select clicked")
+            FS.update(selection.get())
+            root.destroy()
 
     # set your global variables
+    global quitter
+    quitter = "never"
     bg_color = "light gray"
     image_x = 500
     image_y = 400
@@ -800,100 +833,93 @@ def choose_template(image):
     instructions_title = Tk.Label(frame_0, justify = "left", wraplength = image_x, 
                             font = ("Arial",16), bg = bg_color,
                             text = 
-                            "Choose a template.").pack(anchor = "w")
+                            "Choose a template and enter the DTG the image shows.").pack(anchor = "w")
     instructions_text = Tk.Label(frame_0, justify = "left", wraplength = image_x,
                                 font = ("Arial", 12), bg = bg_color,
                                 text = "If a template doesn't already exist, create " +
-                                "a new template. Note: units will not have access to " +
-                                "a new template until you upload a new template folder " +
-                                "and they subsequently download the new template folder.").pack(anchor = "w")
+                                "a new template.").pack(anchor = "w")
 
     #####################################################################
-    # B u i l d   F r a m e   1   =   D r o p d o w n   M e n u
+    # B u i l d   F r a m e   1   =   D r o p d o w n   M e n u,   
+    # D T G ,   B u t t o n s
     frame_1 = Tk.Frame(root, bg = bg_color)
     frame_1.pack(pady = 5)
 
     # build and populate teh drowpdown menu
+    global options
+    options = []
     if os.path.exists("./templates"):
-        options = os.listdir("./templates")
+        for o in os.listdir("./templates"):
+            o_path = "./templates/" + o + "/" + o
+            if os.path.exists(o_path + ".config") and os.path.exists(o_path + "_template.jpg"):
+                options.append(o)
     else:
         os.mkdir("./templates")
-        options = []
 
     if options == []:
         new_click()
     else:
         selection = Tk.StringVar()
         selection.set(options[0])
+        # display the dropdown menu
         drop = Tk.OptionMenu(frame_1, selection, *options, command = show)
-        drop.pack()
+        drop.pack(padx = 10, pady = 5, side = 'left')
+        
+        # display the DTG entry.  Populate it with the current ZULU time
+        zulu = f"{gmtime().tm_mday:02}" + f"{gmtime().tm_hour:02}" + "00Z" + \
+            month_name(gmtime().tm_mon) + str(gmtime().tm_year)
+
+
+        entryDTG = Tk.Entry(frame_1, validate = "key", validatecommand = (root.register(allowalphanumeric), "%P"))
+        entryDTG.pack(padx = 10, pady = 5 , side = 'left')
+        entryDTG.delete(0,Tk.END)
+        entryDTG.insert(0,zulu)
+
+        if not selection.get() == "":
+            button0 = Tk.Button(frame_1, 
+                                text = "Select Template", 
+                                command = select_click)
+            button0.pack(padx = 10, pady = 5, side = 'left')
+
+        button1 = Tk.Button(frame_1, text = "New Template", 
+                            command = new_click)
+        button1.pack(padx = 10, pady = 5 , side = 'left')
+
+        button2 = Tk.Button(frame_1, text = "Cancel", 
+                            command = cancel_click)
+        button2.pack(padx = 10, pady = 5 , side = 'left')
 
         #####################################################################
-        # B u i l d   F r a m e   2   =   T h e   T e m p l a t e
+        # B u i l d   F r a m e   2   =   I m a g e s
+        frame_2 = Tk.Frame(root, bg = bg_color)
+        frame_2.pack(padx = 10, pady = 5)
+
+        #####################################################################
+        # B u i l d   F r a m e   2   T e m p l a t e
         # populate a dictionary of template images
         template_dict = {}
         for op in options:
             os.chdir(FS.cwd + "/templates/" + op)
             template_dict[op] = ImageTk.PhotoImage(Image.open(op + "_template.jpg").resize((image_x, image_y)))
         os.chdir(FS.cwd)
-        frame_2 = Tk.Frame(root, height = image_y, width = image_x, bg = bg_color)
-        frame_2.pack(padx = 10, pady = 5)
+        frame_2_template = Tk.Frame(frame_2, height = image_y, width = image_x, bg = bg_color)
+        frame_2_template.pack(padx = 10, pady = 5, side = 'left')
         global label_image
-        label_image = Tk.Label(frame_2, image = template_dict[selection.get()])
+        label_image = Tk.Label(frame_2_template, image = template_dict[selection.get()])
         label_image.pack()
 
         #####################################################################
-        # B u i l d   F r a m e   3   =   T h e   I m a g e
+        # B u i l d   F r a m e   2   I m a g e
         # populate a dictionary of template images
-        frame_3 = Tk.Frame(root, height = image_y, width = image_x, bg = bg_color)
-        frame_3.pack(padx = 10, pady = 5)
+        frame_2_image = Tk.Frame(frame_2, height = image_y, width = image_x, bg = bg_color)
+        frame_2_image.pack(padx = 10, pady = 5, side = 'left')
         template_dict["orig"] = ImageTk.PhotoImage(Image.fromarray(cv.cvtColor(image, cv.COLOR_BGR2RGB)).resize((image_x, image_y)))
-        orig_image = Tk.Label(frame_3, image = template_dict["orig"])
+        orig_image = Tk.Label(frame_2_image, image = template_dict["orig"])
         orig_image.pack()
-
-        #####################################################################
-        # B u i l d   F r a m e   4   =   B u t t o n s
-        frame_4 = Tk.Frame(root, bg = bg_color)
-        frame_4.pack()
-
-        if not selection.get() == "":
-            button0 = Tk.Button(frame_4, 
-                                text = "Select Template", 
-                                command = select_click)
-            button0.pack(padx = 10, pady = 5, side = 'left')
-
-        button1 = Tk.Button(frame_4, text = "New Template", 
-                            command = new_click)
-        button1.pack(padx = 10, pady = 5 , side = 'left')
-
-        button2 = Tk.Button(frame_4, text = "Cancel", 
-                            command = cancel_click)
-        button2.pack(padx = 10, pady = 5 , side = 'left')
 
         root.attributes("-topmost", True)
         root.protocol("WM_DELETE_WINDOW", cancel_click)
         root.mainloop()
-
-def get_dtg():
-    def dtg_click():
-        global dtg
-        if not "Z" in frame_1.get().upper():
-            Tk.messagebox.showerror("Input a DTG in Zulu time to proceed.","Missing DTG")
-        else:
-            dtg = frame_1.get()
-            root.destroy()
-
-    global dtg
-    root = Tk.Tk()
-    root.title = "Enter DTG"
-    frame_0 = Tk.Label(root, text = "Enter the date time group for which the image displays.")
-    frame_0.pack()
-    frame_1 = Tk.Entry(root, validate = "key", validatecommand = (root.register(allowalphanumeric), "%P"))
-    frame_1.pack()
-    frame_2 = Tk.Button(root, text = "Ok", command = dtg_click)
-    frame_2.pack()
-    root.attributes("-topmost", True)
-    root.mainloop()
 
 #####################################################################
 # S t a r t   o f   _ _ m a i n _ _
@@ -920,227 +946,223 @@ if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
     x, y, z = image.shape
 
     if test_mode:
-        True
+        dtg = "000000ZJAN25"
     else:
         choose_template(image)
 
-    if not "c" in globals(): c = config_read(FS.config)
-    if not "scale" in globals(): scale = scale_build_RGB(c.scale)
+    if quitter == "never":
+        if not "c" in globals(): c = config_read(FS.config)
+        if not "scale" in globals(): scale = scale_build_RGB(c.scale)
 
-    # turn the image into a scalar plot and then smooth it over
-    plot = plot_scale(image.copy())
-    plot = np.array(plot).astype(float)
-    plot = plot_smooth(plot,2)
-    plot = plot_mirror_edge(plot)
-    plot = plot_round(plot)
-    cv.imwrite("./test_build_plot_smooth.jpg", plot * (256 / np.max(plot)))
+        # turn the image into a scalar plot and then smooth it over
+        plot = plot_scale(image.copy())
+        plot = np.array(plot).astype(float)
+        plot = plot_smooth(plot,2)
+        plot = plot_mirror_edge(plot)
+        plot = plot_round(plot)
+        if test_mode: cv.imwrite("./test_build_plot_smooth.jpg", plot * (256 / np.max(plot)))
 
-    ################################################################
-    # r u n    D F T 
-    ################################################################
-    DFT = cv.dft(np.float32(plot),flags=cv.DFT_COMPLEX_OUTPUT)
+        ################################################################
+        # r u n    D F T 
+        ################################################################
+        DFT = cv.dft(np.float32(plot),flags=cv.DFT_COMPLEX_OUTPUT)
 
-    #################################################################
-    # B u i l d   a   c u r t a i l e d   D F T 
-    # Use the coefficient list to build out a new DFT
-    # I have tried a few different shapes.  Turns out that a square
-    # at each corner of the 
-    (x_p, y_p) = plot.shape
-    
-    # only retain a nxn box in each quadrant of the DFT
-    n = 12
-    DFT[n:x_p-1-n,:,:] = np.zeros_like(DFT[n:x_p-1-n,:,:])
-    DFT[:,n:y_p-1-n,:] = np.zeros_like(DFT[:,n:y_p-1-n,:])
+        #################################################################
+        # B u i l d   a   c u r t a i l e d   D F T 
+        # Use the coefficient list to build out a new DFT
+        # I have tried a few different shapes.  Turns out that a square
+        # at each corner of the 
+        (x_p, y_p) = plot.shape
+        
+        # only retain a nxn box in each quadrant of the DFT
+        n = 12
+        DFT[n:x_p-1-n,:,:] = np.zeros_like(DFT[n:x_p-1-n,:,:])
+        DFT[:,n:y_p-1-n,:] = np.zeros_like(DFT[:,n:y_p-1-n,:])
 
-    # normalize so all values are between -1000 and 1000
-    DFT_max = 1000
-    DFT = DFT * (DFT_max / np.max(np.abs(DFT)))
-
-    # in test mode: build an image as a visual representation 
-    # of the DFT coefficients
-    if test_mode:
-        dft_image_re = np.zeros((2*n + 1, 2*n + 1))
-        dft_image_im = np.zeros((2*n + 1, 2*n + 1))
-
-        dft_image_re[   :n,   :n] = DFT[-n: ,-n: ,0]
-        dft_image_re[n+1: ,   :n] = DFT[  :n,-n: ,0]
-        dft_image_re[   :n,n+1: ] = DFT[-n: ,  :n,0]
-        dft_image_re[n+1: ,n+1: ] = DFT[  :n,  :n,0]
-
-        dft_image_im[   :n,   :n] = DFT[-n: ,-n: ,1]
-        dft_image_im[n+1: ,   :n] = DFT[  :n,-n: ,1]
-        dft_image_im[   :n,n+1: ] = DFT[-n: ,  :n,1]
-        dft_image_im[n+1: ,n+1: ] = DFT[  :n,  :n,1]
-
-        dft_image_re_log = np.log10(np.abs(dft_image_re))
-        dft_image_im_log = np.log10(np.abs(dft_image_im))
-
-        cv.imwrite("./test_build_DFT_image_re.jpg", dft_image_re * (256 / np.max(dft_image_re)))
-        cv.imwrite("./test_build_DFT_image_im.jpg", dft_image_im * (256 / np.max(dft_image_im)))
-        cv.imwrite("./test_build_DFT_image_re_log.jpg", dft_image_re_log * (256 / np.max(dft_image_re_log)))
-        cv.imwrite("./test_build_DFT_image_im_log.jpg", dft_image_im_log * (256 / np.max(dft_image_im_log)))
-      
-
-        # in test mode: calculate the RMS due to curtailment
-        IDFT = cv.idft(DFT)
-        IDFT = cv.magnitude(IDFT[:,:,0],IDFT[:,:,1])
-        IDFT = IDFT * (np.max(plot) / np.max(IDFT))
-        IDFT = np.round(IDFT).astype(int)
-        IDFT = np.multiply(IDFT, plot >= 1)
-        cv.imwrite("./test_build_DFT_small.jpg", IDFT * (256 / np.max(IDFT)))
-        diff = ((plot - IDFT) ** 2) / len(plot.flatten())
-        RMS = np.sqrt(np.sum(diff))
-        print("##################################")
-        print("# C u r t a i l e d   D F T")
-        print("# n = " + str(n))
-        print("# RMS = " + str(RMS))
-            
-        DFT_rounded = DFT.copy()
-        for i in range(n):
-            for j in range(n):
-                DFT_rounded[i,      j      ,0] = coeff_round(DFT_rounded[i,      j      ,0])
-                DFT_rounded[x_p-1-i,j      ,0] = coeff_round(DFT_rounded[x_p-1-i,j      ,0])
-                DFT_rounded[i,      y_p-1-j,0] = coeff_round(DFT_rounded[i,      y_p-1-j,0])
-                DFT_rounded[x_p-1-i,y_p-1-j,0] = coeff_round(DFT_rounded[x_p-1-i,y_p-1-j,0])
-                DFT_rounded[i,      j      ,1] = coeff_round(DFT_rounded[i,      j      ,1])
-                DFT_rounded[x_p-1-i,j      ,1] = coeff_round(DFT_rounded[x_p-1-i,j      ,1])
-                DFT_rounded[i,      y_p-1-j,1] = coeff_round(DFT_rounded[i,      y_p-1-j,1])
-                DFT_rounded[x_p-1-i,y_p-1-j,1] = coeff_round(DFT_rounded[x_p-1-i,y_p-1-j,1])
-
-        for i in range(n):
-            for j in range(n):
-                DFT_rounded[i,      j      ,0] = coeff_unround(DFT_rounded[i,      j      ,0])
-                DFT_rounded[x_p-1-i,j      ,0] = coeff_unround(DFT_rounded[x_p-1-i,j      ,0])
-                DFT_rounded[i,      y_p-1-j,0] = coeff_unround(DFT_rounded[i,      y_p-1-j,0])
-                DFT_rounded[x_p-1-i,y_p-1-j,0] = coeff_unround(DFT_rounded[x_p-1-i,y_p-1-j,0])
-                DFT_rounded[i,      j      ,1] = coeff_unround(DFT_rounded[i,      j      ,1])
-                DFT_rounded[x_p-1-i,j      ,1] = coeff_unround(DFT_rounded[x_p-1-i,j      ,1])
-                DFT_rounded[i,      y_p-1-j,1] = coeff_unround(DFT_rounded[i,      y_p-1-j,1])
-                DFT_rounded[x_p-1-i,y_p-1-j,1] = coeff_unround(DFT_rounded[x_p-1-i,y_p-1-j,1])
-
-        dft_image_rounded_re = np.zeros((2*n + 1, 2*n + 1))
-        dft_image_rounded_im = np.zeros((2*n + 1, 2*n + 1))
-
-        dft_image_rounded_re[   :n,   :n] = DFT_rounded[-n: ,-n: ,0]
-        dft_image_rounded_re[n+1: ,   :n] = DFT_rounded[  :n,-n: ,0]
-        dft_image_rounded_re[   :n,n+1: ] = DFT_rounded[-n: ,  :n,0]
-        dft_image_rounded_re[n+1: ,n+1: ] = DFT_rounded[  :n,  :n,0]
-
-        dft_image_rounded_im[   :n,   :n] = DFT_rounded[-n: ,-n: ,1]
-        dft_image_rounded_im[n+1: ,   :n] = DFT_rounded[  :n,-n: ,1]
-        dft_image_rounded_im[   :n,n+1: ] = DFT_rounded[-n: ,  :n,1]
-        dft_image_rounded_im[n+1: ,n+1: ] = DFT_rounded[  :n,  :n,1]
-
-        dft_image_rounded_re_log = np.log10(np.abs(dft_image_rounded_re))
-        dft_image_rounded_im_log = np.log10(np.abs(dft_image_rounded_im))
-
-        cv.imwrite("./test_build_DFT_image_rounded_re.jpg", dft_image_rounded_re * (256 / np.max(dft_image_rounded_re)))
-        cv.imwrite("./test_build_DFT_image_rounded_im.jpg", dft_image_rounded_im * (256 / np.max(dft_image_rounded_im)))
-        cv.imwrite("./test_build_DFT_image_rounded_re_log.jpg", dft_image_rounded_re_log * (256 / np.max(dft_image_rounded_re_log)))
-        cv.imwrite("./test_build_DFT_image_rounded_im_log.jpg", dft_image_rounded_im_log * (256 / np.max(dft_image_rounded_im_log)))
-
-        IDFT = cv.idft(DFT_rounded)
-        IDFT = cv.magnitude(IDFT[:,:,0],IDFT[:,:,1])
-        IDFT = IDFT * (np.max(plot) / np.max(IDFT))
-        IDFT = np.round(IDFT).astype(int)
-        IDFT = np.multiply(IDFT, plot >= 1)
-        cv.imwrite("./test_build_DFT_rounded_small.jpg", IDFT * (256 / np.max(IDFT)))
-        diff = ((plot - IDFT) ** 2) / len(plot.flatten())
-        RMS = np.sqrt(np.sum(diff))
-        print("##################################")
-        print("# R o u n d e d   D F T")
-        print("# n = " + str(n))
-        print("# RMS = " + str(RMS))       
+        # normalize so all values are between -1000 and 1000
+        DFT_max = 1000
+        DFT = DFT * (DFT_max / np.max(np.abs(DFT)))
 
         # in test mode: build an image as a visual representation 
         # of the DFT coefficients
-        dft_image_round_re = np.zeros((2*n + 1, 2*n + 1))
-        dft_image_round_im = np.zeros((2*n + 1, 2*n + 1))
+        if test_mode:
+            dft_image_re = np.zeros((2*n + 1, 2*n + 1))
+            dft_image_im = np.zeros((2*n + 1, 2*n + 1))
 
-        dft_image_round_re[   :n,   :n] = DFT_rounded[-n: ,-n: ,0]
-        dft_image_round_re[n+1: ,   :n] = DFT_rounded[  :n,-n: ,0]
-        dft_image_round_re[   :n,n+1: ] = DFT_rounded[-n: ,  :n,0]
-        dft_image_round_re[n+1: ,n+1: ] = DFT_rounded[  :n,  :n,0]
+            dft_image_re[   :n,   :n] = DFT[-n: ,-n: ,0]
+            dft_image_re[n+1: ,   :n] = DFT[  :n,-n: ,0]
+            dft_image_re[   :n,n+1: ] = DFT[-n: ,  :n,0]
+            dft_image_re[n+1: ,n+1: ] = DFT[  :n,  :n,0]
 
-        dft_image_round_im[   :n,   :n] = DFT_rounded[-n: ,-n: ,1]
-        dft_image_round_im[n+1: ,   :n] = DFT_rounded[  :n,-n: ,1]
-        dft_image_round_im[   :n,n+1: ] = DFT_rounded[-n: ,  :n,1]
-        dft_image_round_im[n+1: ,n+1: ] = DFT_rounded[  :n,  :n,1]
+            dft_image_im[   :n,   :n] = DFT[-n: ,-n: ,1]
+            dft_image_im[n+1: ,   :n] = DFT[  :n,-n: ,1]
+            dft_image_im[   :n,n+1: ] = DFT[-n: ,  :n,1]
+            dft_image_im[n+1: ,n+1: ] = DFT[  :n,  :n,1]
 
-        dft_image_round_re_log = np.log10(np.abs(dft_image_re))
-        dft_image_round_im_log = np.log10(np.abs(dft_image_im))
+            dft_image_re_log = np.log10(np.abs(dft_image_re))
+            dft_image_im_log = np.log10(np.abs(dft_image_im))
 
-        cv.imwrite("./test_build_DFT_image_re.jpg", dft_image_re * (256 / np.max(dft_image_re)))
-        cv.imwrite("./test_build_DFT_image_im.jpg", dft_image_im * (256 / np.max(dft_image_im)))
-        cv.imwrite("./test_build_DFT_image_re_log.jpg", dft_image_re_log * (256 / np.max(dft_image_re_log)))
-        cv.imwrite("./test_build_DFT_image_im_log.jpg", dft_image_im_log * (256 / np.max(dft_image_im_log)))
-      
-    address = DFT_mapping(n)
-    DFT_flat = np.zeros(n * n * 8).astype(int)
-    k_df = 0
-    for [i,j] in address:
-        i_s, j_s, k_s = [i,x-i-1], [j,y-j-1], [0, 1]
-        for i1 in i_s:
-            for j1 in j_s:
-                for k1 in k_s:
-                    DFT_flat[k_df] = int(coeff_round(DFT[i1,j1,k1]))
-                    if test_mode: print(str(DFT[i1,j1,k1]) + " " + str(coeff_unround(coeff_round(DFT[i1,j1,k1]))))
-                    k_df += 1
-    if test_mode: 
-        with open("./DFT_flat_write.txt",'w') as file:
-            for f in DFT_flat:
-                print(f, file = file)
+            cv.imwrite("./test_build_DFT_image_re.jpg", dft_image_re * (256 / np.max(dft_image_re)))
+            cv.imwrite("./test_build_DFT_image_im.jpg", dft_image_im * (256 / np.max(dft_image_im)))
+            cv.imwrite("./test_build_DFT_image_re_log.jpg", dft_image_re_log * (256 / np.max(dft_image_re_log)))
+            cv.imwrite("./test_build_DFT_image_im_log.jpg", dft_image_im_log * (256 / np.max(dft_image_im_log)))
+        
 
-    # k_df below is used to mark the last written coefficent
-    line_limit = 62 ** 68
-    k_df = 0
-    msg_bulk = ""
-    for k in range(1,len(DFT_flat)):
-        if int(max(DFT_flat[k_df:k]) + 1) ** (k - k_df) > line_limit:
-            if test_mode:
-                print("coefficients " + str(k_df) + " through " + str(k-2))
-                print(DFT_flat[k_df:k-1])
-            # start a new line with the character for the max coefficient
-            # on the line
-            if msg_bulk != "": msg_bulk = msg_bulk + "\n"
-            msg_bulk += msg_nextline_build(DFT_flat[k_df:k-1])
-            
-            k_df = k - 1
+            # in test mode: calculate the RMS due to curtailment
+            IDFT = cv.idft(DFT)
+            IDFT = cv.magnitude(IDFT[:,:,0],IDFT[:,:,1])
+            IDFT = IDFT * (np.max(plot) / np.max(IDFT))
+            IDFT = np.round(IDFT).astype(int)
+            IDFT = np.multiply(IDFT, plot >= 1)
+            cv.imwrite("./test_build_DFT_small.jpg", IDFT * (256 / np.max(IDFT)))
+            diff = ((plot - IDFT) ** 2) / len(plot.flatten())
+            RMS = np.sqrt(np.sum(diff))
+            print("##################################")
+            print("# C u r t a i l e d   D F T")
+            print("# n = " + str(n))
+            print("# RMS = " + str(RMS))
+                
+            DFT_rounded = DFT.copy()
+            for i in range(n):
+                for j in range(n):
+                    DFT_rounded[i,      j      ,0] = coeff_round(DFT_rounded[i,      j      ,0])
+                    DFT_rounded[x_p-1-i,j      ,0] = coeff_round(DFT_rounded[x_p-1-i,j      ,0])
+                    DFT_rounded[i,      y_p-1-j,0] = coeff_round(DFT_rounded[i,      y_p-1-j,0])
+                    DFT_rounded[x_p-1-i,y_p-1-j,0] = coeff_round(DFT_rounded[x_p-1-i,y_p-1-j,0])
+                    DFT_rounded[i,      j      ,1] = coeff_round(DFT_rounded[i,      j      ,1])
+                    DFT_rounded[x_p-1-i,j      ,1] = coeff_round(DFT_rounded[x_p-1-i,j      ,1])
+                    DFT_rounded[i,      y_p-1-j,1] = coeff_round(DFT_rounded[i,      y_p-1-j,1])
+                    DFT_rounded[x_p-1-i,y_p-1-j,1] = coeff_round(DFT_rounded[x_p-1-i,y_p-1-j,1])
 
-    k = len(DFT_flat)
-    if test_mode:
-        print("coefficients " + str(k_df) + " through " + str(k-1))
-        print(DFT_flat[k_df:k])
-    if msg_bulk != "": msg_bulk = msg_bulk + "\n"
-    msg_bulk += msg_nextline_build(DFT_flat[k_df:k]) 
+            for i in range(n):
+                for j in range(n):
+                    DFT_rounded[i,      j      ,0] = coeff_unround(DFT_rounded[i,      j      ,0])
+                    DFT_rounded[x_p-1-i,j      ,0] = coeff_unround(DFT_rounded[x_p-1-i,j      ,0])
+                    DFT_rounded[i,      y_p-1-j,0] = coeff_unround(DFT_rounded[i,      y_p-1-j,0])
+                    DFT_rounded[x_p-1-i,y_p-1-j,0] = coeff_unround(DFT_rounded[x_p-1-i,y_p-1-j,0])
+                    DFT_rounded[i,      j      ,1] = coeff_unround(DFT_rounded[i,      j      ,1])
+                    DFT_rounded[x_p-1-i,j      ,1] = coeff_unround(DFT_rounded[x_p-1-i,j      ,1])
+                    DFT_rounded[i,      y_p-1-j,1] = coeff_unround(DFT_rounded[i,      y_p-1-j,1])
+                    DFT_rounded[x_p-1-i,y_p-1-j,1] = coeff_unround(DFT_rounded[x_p-1-i,y_p-1-j,1])
 
-    if len(msg_bulk.splitlines()[-1]) > 67: msg_bulk += "\n"
-    msg_bulk += "//"
+            dft_image_rounded_re = np.zeros((2*n + 1, 2*n + 1))
+            dft_image_rounded_im = np.zeros((2*n + 1, 2*n + 1))
 
-    # save the values of the DFT to a file
-    message_file_path = FS.orig_folder + "/" + FS.subject + ".txt"
+            dft_image_rounded_re[   :n,   :n] = DFT_rounded[-n: ,-n: ,0]
+            dft_image_rounded_re[n+1: ,   :n] = DFT_rounded[  :n,-n: ,0]
+            dft_image_rounded_re[   :n,n+1: ] = DFT_rounded[-n: ,  :n,0]
+            dft_image_rounded_re[n+1: ,n+1: ] = DFT_rounded[  :n,  :n,0]
 
-    if test_mode:
-        dtg = "000000ZJAN25"
-    else:
-        get_dtg()
+            dft_image_rounded_im[   :n,   :n] = DFT_rounded[-n: ,-n: ,1]
+            dft_image_rounded_im[n+1: ,   :n] = DFT_rounded[  :n,-n: ,1]
+            dft_image_rounded_im[   :n,n+1: ] = DFT_rounded[-n: ,  :n,1]
+            dft_image_rounded_im[n+1: ,n+1: ] = DFT_rounded[  :n,  :n,1]
 
-    with open(message_file_path,'w') as file:
-        if os.path.exists(FS.cwd + "/Message Template.txt"):
-            with open("Message Template.txt", "r") as file_r: message_template = file_r.read()
-            message_template_intro = message_template.split("<message>\n")[0]
-            message_template_outro = message_template.split("<message>\n")[1]
-            for m_t in message_template_intro.splitlines(): print(m_t, file = file)
-        print(str(x) + "/" + 
-              str(y) + "/" + 
-              str(n) + "/" + 
-              str(int(np.max(plot))) + "/" + 
-              dtg + "/" +
-              FS.subject + "/A1R1G2U3S5/",                                 file = file)
-        print(msg_bulk,                                                file = file)
-        if os.path.exists(FS.cwd + "/Message Template.txt"):
-            for m_t in message_template_outro.splitlines(): print(m_t, file = file)
-    os.startfile(message_file_path)
+            dft_image_rounded_re_log = np.log10(np.abs(dft_image_rounded_re))
+            dft_image_rounded_im_log = np.log10(np.abs(dft_image_rounded_im))
+
+            cv.imwrite("./test_build_DFT_image_rounded_re.jpg", dft_image_rounded_re * (256 / np.max(dft_image_rounded_re)))
+            cv.imwrite("./test_build_DFT_image_rounded_im.jpg", dft_image_rounded_im * (256 / np.max(dft_image_rounded_im)))
+            cv.imwrite("./test_build_DFT_image_rounded_re_log.jpg", dft_image_rounded_re_log * (256 / np.max(dft_image_rounded_re_log)))
+            cv.imwrite("./test_build_DFT_image_rounded_im_log.jpg", dft_image_rounded_im_log * (256 / np.max(dft_image_rounded_im_log)))
+
+            IDFT = cv.idft(DFT_rounded)
+            IDFT = cv.magnitude(IDFT[:,:,0],IDFT[:,:,1])
+            IDFT = IDFT * (np.max(plot) / np.max(IDFT))
+            IDFT = np.round(IDFT).astype(int)
+            IDFT = np.multiply(IDFT, plot >= 1)
+            cv.imwrite("./test_build_DFT_rounded_small.jpg", IDFT * (256 / np.max(IDFT)))
+            diff = ((plot - IDFT) ** 2) / len(plot.flatten())
+            RMS = np.sqrt(np.sum(diff))
+            print("##################################")
+            print("# R o u n d e d   D F T")
+            print("# n = " + str(n))
+            print("# RMS = " + str(RMS))       
+
+            # in test mode: build an image as a visual representation 
+            # of the DFT coefficients
+            dft_image_round_re = np.zeros((2*n + 1, 2*n + 1))
+            dft_image_round_im = np.zeros((2*n + 1, 2*n + 1))
+
+            dft_image_round_re[   :n,   :n] = DFT_rounded[-n: ,-n: ,0]
+            dft_image_round_re[n+1: ,   :n] = DFT_rounded[  :n,-n: ,0]
+            dft_image_round_re[   :n,n+1: ] = DFT_rounded[-n: ,  :n,0]
+            dft_image_round_re[n+1: ,n+1: ] = DFT_rounded[  :n,  :n,0]
+
+            dft_image_round_im[   :n,   :n] = DFT_rounded[-n: ,-n: ,1]
+            dft_image_round_im[n+1: ,   :n] = DFT_rounded[  :n,-n: ,1]
+            dft_image_round_im[   :n,n+1: ] = DFT_rounded[-n: ,  :n,1]
+            dft_image_round_im[n+1: ,n+1: ] = DFT_rounded[  :n,  :n,1]
+
+            dft_image_round_re_log = np.log10(np.abs(dft_image_re))
+            dft_image_round_im_log = np.log10(np.abs(dft_image_im))
+
+            cv.imwrite("./test_build_DFT_image_re.jpg", dft_image_re * (256 / np.max(dft_image_re)))
+            cv.imwrite("./test_build_DFT_image_im.jpg", dft_image_im * (256 / np.max(dft_image_im)))
+            cv.imwrite("./test_build_DFT_image_re_log.jpg", dft_image_re_log * (256 / np.max(dft_image_re_log)))
+            cv.imwrite("./test_build_DFT_image_im_log.jpg", dft_image_im_log * (256 / np.max(dft_image_im_log)))
+        
+        address = DFT_mapping(n)
+        DFT_flat = np.zeros(n * n * 8).astype(int)
+        k_df = 0
+        for [i,j] in address:
+            i_s, j_s, k_s = [i,x-i-1], [j,y-j-1], [0, 1]
+            for i1 in i_s:
+                for j1 in j_s:
+                    for k1 in k_s:
+                        DFT_flat[k_df] = int(coeff_round(DFT[i1,j1,k1]))
+                        if test_mode: print(str(DFT[i1,j1,k1]) + " " + str(coeff_unround(coeff_round(DFT[i1,j1,k1]))))
+                        k_df += 1
+        if test_mode: 
+            with open("./DFT_flat_write.txt",'w') as file:
+                for f in DFT_flat:
+                    print(f, file = file)
+
+        # k_df below is used to mark the last written coefficent
+        line_limit = 62 ** 68
+        k_df = 0
+        msg_bulk = ""
+        for k in range(1,len(DFT_flat)):
+            if int(max(DFT_flat[k_df:k]) + 1) ** (k - k_df) > line_limit:
+                if test_mode:
+                    print("coefficients " + str(k_df) + " through " + str(k-2))
+                    print(DFT_flat[k_df:k-1])
+                # start a new line with the character for the max coefficient
+                # on the line
+                if msg_bulk != "": msg_bulk = msg_bulk + "\n"
+                msg_bulk += msg_nextline_build(DFT_flat[k_df:k-1])
+                
+                k_df = k - 1
+
+        k = len(DFT_flat)
+        if test_mode:
+            print("coefficients " + str(k_df) + " through " + str(k-1))
+            print(DFT_flat[k_df:k])
+        if msg_bulk != "": msg_bulk = msg_bulk + "\n"
+        msg_bulk += msg_nextline_build(DFT_flat[k_df:k]) 
+
+        if len(msg_bulk.splitlines()[-1]) > 67: msg_bulk += "\n"
+        msg_bulk += "//"
+
+        # save the values of the DFT to a file
+        message_file_path = FS.orig_folder + "/" + FS.subject + ".txt"
+
+        with open(message_file_path,'w') as file:
+            if os.path.exists(FS.cwd + "/Message Template.txt"):
+                with open("Message Template.txt", "r") as file_r: message_template = file_r.read()
+                message_template_intro = message_template.split("<message>\n")[0]
+                message_template_outro = message_template.split("<message>\n")[1]
+                for m_t in message_template_intro.splitlines(): print(m_t, file = file)
+            print(str(x) + "/" + 
+                str(y) + "/" + 
+                str(n) + "/" + 
+                str(int(np.max(plot))) + "/" + 
+                dtg + "/" +
+                FS.subject + "/A1R1G2U3S5/",                                 file = file)
+            print(msg_bulk,                                                file = file)
+            if os.path.exists(FS.cwd + "/Message Template.txt"):
+                for m_t in message_template_outro.splitlines(): print(m_t, file = file)
+        os.startfile(message_file_path)
 
 #####################################################################
 # m e s s a g e   - >   i m a g e

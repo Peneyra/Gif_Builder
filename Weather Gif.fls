@@ -1,8 +1,8 @@
-PWD c:/python/projects/git/Gif_Builder
+PWD c:/Python/Projects/Navy/gif builder/git
 INPUT c:/texlive/2024/texmf.cnf
 INPUT c:/texlive/2024/texmf-dist/web2c/texmf.cnf
 INPUT c:/texlive/2024/texmf-var/web2c/pdftex/pdflatex.fmt
-INPUT c:/python/projects/git/Gif_Builder/Weather Gif.tex
+INPUT c:/Python/Projects/Navy/gif builder/git/Weather Gif.tex
 OUTPUT Weather Gif.log
 INPUT c:/texlive/2024/texmf-dist/tex/latex/base/article.cls
 INPUT c:/texlive/2024/texmf-dist/tex/latex/base/article.cls
@@ -182,6 +182,8 @@ INPUT c:/texlive/2024/texmf-dist/tex/generic/pgf/libraries/pgflibraryplothandler
 INPUT c:/texlive/2024/texmf-dist/tex/generic/pgf/modules/pgfmodulematrix.code.tex
 INPUT c:/texlive/2024/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tikzlibrarytopaths.code.tex
 INPUT c:/texlive/2024/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tikzlibrarytopaths.code.tex
+INPUT c:/texlive/2024/texmf-dist/tex/latex/float/float.sty
+INPUT c:/texlive/2024/texmf-dist/tex/latex/float/float.sty
 INPUT c:/texlive/2024/texmf-dist/tex/latex/listings/lstlang1.sty
 INPUT c:/texlive/2024/texmf-dist/tex/latex/listings/lstlang1.sty
 INPUT c:/texlive/2024/texmf-dist/tex/latex/listings/lstlang1.sty
@@ -254,6 +256,36 @@ OUTPUT Weather Gif.pdf
 INPUT c:/texlive/2024/texmf-var/fonts/map/pdftex/updmap/pdftex.map
 INPUT c:/texlive/2024/texmf-dist/fonts/tfm/jknappen/ec/tcrm1000.tfm
 INPUT c:/texlive/2024/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc
+INPUT ./TeX/Build_Template1.jpg
+INPUT ./TeX/Build_Template1.jpg
+INPUT ./TeX/Build_Template1.jpg
+INPUT ./TeX/Build_Template1.jpg
+INPUT ./TeX/Build_Template1.jpg
+INPUT ./TeX/Build_Template2.jpg
+INPUT ./TeX/Build_Template2.jpg
+INPUT ./TeX/Build_Template2.jpg
+INPUT ./TeX/Build_Template2.jpg
+INPUT ./TeX/Build_Template2.jpg
+INPUT ./TeX/Build_Template3.jpg
+INPUT ./TeX/Build_Template3.jpg
+INPUT ./TeX/Build_Template3.jpg
+INPUT ./TeX/Build_Template3.jpg
+INPUT ./TeX/Build_Template3.jpg
+INPUT ./TeX/Build_Template4.jpg
+INPUT ./TeX/Build_Template4.jpg
+INPUT ./TeX/Build_Template4.jpg
+INPUT ./TeX/Build_Template4.jpg
+INPUT ./TeX/Build_Template4.jpg
+INPUT ./TeX/Build_Template5.jpg
+INPUT ./TeX/Build_Template5.jpg
+INPUT ./TeX/Build_Template5.jpg
+INPUT ./TeX/Build_Template5.jpg
+INPUT ./TeX/Build_Template5.jpg
+INPUT ./TeX/Build_Template6.jpg
+INPUT ./TeX/Build_Template6.jpg
+INPUT ./TeX/Build_Template6.jpg
+INPUT ./TeX/Build_Template6.jpg
+INPUT ./TeX/Build_Template6.jpg
 INPUT c:/texlive/2024/texmf-dist/tex/latex/base/omlcmr.fd
 INPUT c:/texlive/2024/texmf-dist/tex/latex/base/omlcmr.fd
 INPUT c:/texlive/2024/texmf-dist/tex/latex/base/omlcmr.fd
