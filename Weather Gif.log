@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024) (preloaded format=pdflatex 2025.1.21)  22 JAN 2025 10:56
+This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024) (preloaded format=pdflatex 2025.1.21)  22 JAN 2025 18:59
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -526,80 +526,108 @@ File: ursfs.fd 1998/03/24 rsfs font definition file (jk)
 {c:/texlive/2024/texmf-var/fonts/map/pdftex/updmap/pdftex.map}]
 
 [2{c:/texlive/2024/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}]
-<TeX/Build_Template1.jpg, id=20, 389.20406pt x 429.10312pt>
+
+[3]
+<TeX/Build_Template1.jpg, id=23, 389.20406pt x 429.10312pt>
 File: TeX/Build_Template1.jpg Graphic file (type jpg)
 <use TeX/Build_Template1.jpg>
 Package pdftex.def Info: TeX/Build_Template1.jpg  used on input line 189.
 (pdftex.def)             Requested size: 209.58257pt x 231.07057pt.
 
 
-[3]
-<TeX/Build_Template2.jpg, id=24, 390.70969pt x 429.85594pt>
+[4 <./TeX/Build_Template1.jpg>]
+<TeX/Build_Template2.jpg, id=27, 390.70969pt x 429.85594pt>
 File: TeX/Build_Template2.jpg Graphic file (type jpg)
 <use TeX/Build_Template2.jpg>
-Package pdftex.def Info: TeX/Build_Template2.jpg  used on input line 199.
+Package pdftex.def Info: TeX/Build_Template2.jpg  used on input line 200.
 (pdftex.def)             Requested size: 209.58257pt x 230.58392pt.
 
 
-[4 <./TeX/Build_Template1.jpg>]
-<TeX/Build_Template3.jpg, id=28, 391.4625pt x 442.65375pt>
+[5 <./TeX/Build_Template2.jpg>]
+<TeX/Build_Template3.jpg, id=31, 391.4625pt x 442.65375pt>
 File: TeX/Build_Template3.jpg Graphic file (type jpg)
 <use TeX/Build_Template3.jpg>
-Package pdftex.def Info: TeX/Build_Template3.jpg  used on input line 205.
+Package pdftex.def Info: TeX/Build_Template3.jpg  used on input line 207.
 (pdftex.def)             Requested size: 209.58257pt x 236.98964pt.
 
 
-[5 <./TeX/Build_Template2.jpg> <./TeX/Build_Template3.jpg>]
-<TeX/Build_Template4.jpg, id=32, 391.4625pt x 427.5975pt>
+[6 <./TeX/Build_Template3.jpg>]
+<TeX/Build_Template4.jpg, id=35, 391.4625pt x 427.5975pt>
 File: TeX/Build_Template4.jpg Graphic file (type jpg)
 <use TeX/Build_Template4.jpg>
-Package pdftex.def Info: TeX/Build_Template4.jpg  used on input line 215.
+Package pdftex.def Info: TeX/Build_Template4.jpg  used on input line 218.
 (pdftex.def)             Requested size: 209.58257pt x 228.92877pt.
-<TeX/Build_Template5.jpg, id=33, 391.4625pt x 429.10312pt>
+
+
+[7 <./TeX/Build_Template4.jpg>]
+<TeX/Build_Template5.jpg, id=40, 391.4625pt x 429.10312pt>
 File: TeX/Build_Template5.jpg Graphic file (type jpg)
 <use TeX/Build_Template5.jpg>
-Package pdftex.def Info: TeX/Build_Template5.jpg  used on input line 225.
+Package pdftex.def Info: TeX/Build_Template5.jpg  used on input line 229.
 (pdftex.def)             Requested size: 209.58257pt x 229.73486pt.
 
 
-[6 <./TeX/Build_Template4.jpg>]
-<TeX/Build_Template6.jpg, id=37, 392.96812pt x 429.10312pt>
+[8 <./TeX/Build_Template5.jpg>]
+<TeX/Build_Template6.jpg, id=44, 392.96812pt x 429.10312pt>
 File: TeX/Build_Template6.jpg Graphic file (type jpg)
 <use TeX/Build_Template6.jpg>
-Package pdftex.def Info: TeX/Build_Template6.jpg  used on input line 231.
+Package pdftex.def Info: TeX/Build_Template6.jpg  used on input line 236.
 (pdftex.def)             Requested size: 209.58257pt x 228.85748pt.
 
 
-[7 <./TeX/Build_Template5.jpg> <./TeX/Build_Template6.jpg>]
-LaTeX Font Info:    Trying to load font information for OML+cmr on input line 257.
+[9 <./TeX/Build_Template6.jpg>]
+<TeX/Build_Template7.jpg, id=48, 392.96812pt x 430.60875pt>
+File: TeX/Build_Template7.jpg Graphic file (type jpg)
+<use TeX/Build_Template7.jpg>
+Package pdftex.def Info: TeX/Build_Template7.jpg  used on input line 246.
+(pdftex.def)             Requested size: 209.58257pt x 229.66049pt.
+
+
+[10 <./TeX/Build_Template7.jpg>]
+<TeX/Build_Template8.jpg, id=52, 392.96812pt x 405.76593pt>
+File: TeX/Build_Template8.jpg Graphic file (type jpg)
+<use TeX/Build_Template8.jpg>
+Package pdftex.def Info: TeX/Build_Template8.jpg  used on input line 253.
+(pdftex.def)             Requested size: 209.58257pt x 216.41084pt.
+
+
+[11 <./TeX/Build_Template8.jpg>]
+<TeX/Build_Template9.jpg, id=56, 392.96812pt x 405.76593pt>
+File: TeX/Build_Template9.jpg Graphic file (type jpg)
+<use TeX/Build_Template9.jpg>
+Package pdftex.def Info: TeX/Build_Template9.jpg  used on input line 265.
+(pdftex.def)             Requested size: 209.58257pt x 216.41084pt.
+LaTeX Font Info:    Trying to load font information for OML+cmr on input line 276.
  (c:/texlive/2024/texmf-dist/tex/latex/base/omlcmr.fd
 File: omlcmr.fd 2024/11/19 v2.5n Standard LaTeX font definitions
 )
+LaTeX Font Info:    Font shape `OML/cmr/m/n' in size <10> not available
+(Font)              Font shape `OML/cmm/m/it' tried instead on input line 276.
 LaTeX Font Info:    Font shape `OML/cmr/m/n' in size <8> not available
-(Font)              Font shape `OML/cmm/m/it' tried instead on input line 257.
+(Font)              Font shape `OML/cmm/m/it' tried instead on input line 289.
 
 
-[8]
+[12 <./TeX/Build_Template9.jpg>]
 
-[9] (./Weather Gif.aux)
+[13] (./Weather Gif.aux)
  ***********
 LaTeX2e <2024-11-01> patch level 1
 L3 programming layer <2024-12-25>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 17141 strings out of 473207
- 325765 string characters out of 5720455
- 921284 words of memory out of 5000000
- 40089 multiletter control sequences out of 15000+600000
+ 17163 strings out of 473207
+ 326406 string characters out of 5720455
+ 918284 words of memory out of 5000000
+ 40111 multiletter control sequences out of 15000+600000
  568370 words of font info for 75 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 84i,12n,87p,475b,1378s stack positions out of 10000i,1000n,20000p,200000b,200000s
-<c:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb><c:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb><c:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb><c:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb><c:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb><c:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb><c:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb><c:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb><c:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb><c:/texlive/2024/texmf-dist/fonts/type1/public/cm-super/sfrm1000.pfb>
-Output written on "Weather Gif.pdf" (9 pages, 926206 bytes).
+ 84i,11n,87p,524b,1169s stack positions out of 10000i,1000n,20000p,200000b,200000s
+<c:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb><c:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb><c:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb><c:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb><c:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb><c:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb><c:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb><c:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb><c:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb><c:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb><c:/texlive/2024/texmf-dist/fonts/type1/public/cm-super/sfrm1000.pfb>
+Output written on "Weather Gif.pdf" (13 pages, 1231795 bytes).
 PDF statistics:
- 94 PDF objects out of 1000 (max. 8388607)
- 56 compressed objects within 1 object stream
+ 115 PDF objects out of 1000 (max. 8388607)
+ 68 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
- 43 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 58 words of extra memory for PDF output out of 10000 (max. 10000000)
 
