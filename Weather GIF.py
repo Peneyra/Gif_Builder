@@ -20,7 +20,7 @@ from time import gmtime
 # 8. Interpret build the scalar array into the original input image
 # 9. Overlay a standard image template over the top of the scalar array
 
-test_mode = True
+test_mode = False
 
 #####################################################################
 # B u i l d   C l a s s e s 
