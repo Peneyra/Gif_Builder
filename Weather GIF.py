@@ -20,7 +20,7 @@ from time import gmtime
 # 8. Interpret build the scalar array into the original input image
 # 9. Overlay a standard image template over the top of the scalar array
 
-test_mode = False
+test_mode = True
 
 #####################################################################
 # B u i l d   C l a s s e s 
@@ -927,261 +927,264 @@ def choose_template(image):
 # open a file browser and save the file name as orig_path
 orig_path = askopenfilename()
 
-FS = File_Structure(orig_path)
+print(orig_path)
+if not orig_path == "":
+    FS = File_Structure(orig_path)
 
-#####################################################################
-# i m a g e   - >   m e s s a g e
-#####################################################################
-if FS.ext.lower() == ".gif":
-    gif = imageio.mimread(orig_path)
-    image = [cv.cvtColor(img, cv.COLOR_RGB2BGR) for img in gif][0]
-if FS.ext.lower() == ".jpg":
-    image = cv.imread(orig_path)
+    #####################################################################
+    # i m a g e   - >   m e s s a g e
+    #####################################################################
+    if FS.ext.lower() == ".gif":
+        gif = imageio.mimread(orig_path)
+        image = [cv.cvtColor(img, cv.COLOR_RGB2BGR) for img in gif][0]
+    if FS.ext.lower() == ".jpg":
+        image = cv.imread(orig_path)
 
-#####################################################################
-# i m a g e   - >   m e s s a g e
-#####################################################################
-# if we've defined an image, otherwise skip to except
-if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
-    x, y, z = image.shape
+    #####################################################################
+    # i m a g e   - >   m e s s a g e
+    #####################################################################
+    # if we've defined an image, otherwise skip to except
+    if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
+        x, y, z = image.shape
 
-    if test_mode:
-        dtg = "000000ZJAN25"
-    else:
-        choose_template(image)
-
-    if quitter == "never":
-        if not "c" in globals(): c = config_read(FS.config)
-        if not "scale" in globals(): scale = scale_build_RGB(c.scale)
-
-        # turn the image into a scalar plot and then smooth it over
-        plot = plot_scale(image.copy())
-        plot = np.array(plot).astype(float)
-        plot = plot_smooth(plot,2)
-        plot = plot_mirror_edge(plot)
-        plot = plot_round(plot)
-        if test_mode: cv.imwrite("./test_build_plot_smooth.jpg", plot * (256 / np.max(plot)))
-
-        ################################################################
-        # r u n    D F T 
-        ################################################################
-        DFT = cv.dft(np.float32(plot),flags=cv.DFT_COMPLEX_OUTPUT)
-
-        #################################################################
-        # B u i l d   a   c u r t a i l e d   D F T 
-        # Use the coefficient list to build out a new DFT
-        # I have tried a few different shapes.  Turns out that a square
-        # at each corner of the 
-        (x_p, y_p) = plot.shape
-        
-        # only retain a nxn box in each quadrant of the DFT
-        n = 12
-        DFT[n:x_p-1-n,:,:] = np.zeros_like(DFT[n:x_p-1-n,:,:])
-        DFT[:,n:y_p-1-n,:] = np.zeros_like(DFT[:,n:y_p-1-n,:])
-
-        # normalize so all values are between -1000 and 1000
-        DFT_max = 1000
-        DFT = DFT * (DFT_max / np.max(np.abs(DFT)))
-
-        # in test mode: build an image as a visual representation 
-        # of the DFT coefficients
         if test_mode:
-            dft_image_re = np.zeros((2*n + 1, 2*n + 1))
-            dft_image_im = np.zeros((2*n + 1, 2*n + 1))
+            dtg = "000000ZJAN25"
+            quitter = "never"
+        else:
+            choose_template(image)
 
-            dft_image_re[   :n,   :n] = DFT[-n: ,-n: ,0]
-            dft_image_re[n+1: ,   :n] = DFT[  :n,-n: ,0]
-            dft_image_re[   :n,n+1: ] = DFT[-n: ,  :n,0]
-            dft_image_re[n+1: ,n+1: ] = DFT[  :n,  :n,0]
+        if quitter == "never":
+            if not "c" in globals(): c = config_read(FS.config)
+            if not "scale" in globals(): scale = scale_build_RGB(c.scale)
 
-            dft_image_im[   :n,   :n] = DFT[-n: ,-n: ,1]
-            dft_image_im[n+1: ,   :n] = DFT[  :n,-n: ,1]
-            dft_image_im[   :n,n+1: ] = DFT[-n: ,  :n,1]
-            dft_image_im[n+1: ,n+1: ] = DFT[  :n,  :n,1]
+            # turn the image into a scalar plot and then smooth it over
+            plot = plot_scale(image.copy())
+            plot = np.array(plot).astype(float)
+            plot = plot_smooth(plot,20)
+            plot = plot_mirror_edge(plot)
+            plot = plot_round(plot)
+            if test_mode: cv.imwrite("./test_build_plot_smooth.jpg", plot * (256 / np.max(plot)))
 
-            dft_image_re_log = np.log10(np.abs(dft_image_re))
-            dft_image_im_log = np.log10(np.abs(dft_image_im))
+            ################################################################
+            # r u n    D F T 
+            ################################################################
+            DFT = cv.dft(np.float32(plot),flags=cv.DFT_COMPLEX_OUTPUT)
 
-            cv.imwrite("./test_build_DFT_image_re.jpg", dft_image_re * (256 / np.max(dft_image_re)))
-            cv.imwrite("./test_build_DFT_image_im.jpg", dft_image_im * (256 / np.max(dft_image_im)))
-            cv.imwrite("./test_build_DFT_image_re_log.jpg", dft_image_re_log * (256 / np.max(dft_image_re_log)))
-            cv.imwrite("./test_build_DFT_image_im_log.jpg", dft_image_im_log * (256 / np.max(dft_image_im_log)))
-        
+            #################################################################
+            # B u i l d   a   c u r t a i l e d   D F T 
+            # Use the coefficient list to build out a new DFT
+            # I have tried a few different shapes.  Turns out that a square
+            # at each corner of the 
+            (x_p, y_p) = plot.shape
+            
+            # only retain a nxn box in each quadrant of the DFT
+            n = 12
+            DFT[n:x_p-1-n,:,:] = np.zeros_like(DFT[n:x_p-1-n,:,:])
+            DFT[:,n:y_p-1-n,:] = np.zeros_like(DFT[:,n:y_p-1-n,:])
 
-            # in test mode: calculate the RMS due to curtailment
-            IDFT = cv.idft(DFT)
-            IDFT = cv.magnitude(IDFT[:,:,0],IDFT[:,:,1])
-            IDFT = IDFT * (np.max(plot) / np.max(IDFT))
-            IDFT = np.round(IDFT).astype(int)
-            IDFT = np.multiply(IDFT, plot >= 1)
-            cv.imwrite("./test_build_DFT_small.jpg", IDFT * (256 / np.max(IDFT)))
-            diff = ((plot - IDFT) ** 2) / len(plot.flatten())
-            RMS = np.sqrt(np.sum(diff))
-            print("##################################")
-            print("# C u r t a i l e d   D F T")
-            print("# n = " + str(n))
-            print("# RMS = " + str(RMS))
-                
-            DFT_rounded = DFT.copy()
-            for i in range(n):
-                for j in range(n):
-                    DFT_rounded[i,      j      ,0] = coeff_round(DFT_rounded[i,      j      ,0])
-                    DFT_rounded[x_p-1-i,j      ,0] = coeff_round(DFT_rounded[x_p-1-i,j      ,0])
-                    DFT_rounded[i,      y_p-1-j,0] = coeff_round(DFT_rounded[i,      y_p-1-j,0])
-                    DFT_rounded[x_p-1-i,y_p-1-j,0] = coeff_round(DFT_rounded[x_p-1-i,y_p-1-j,0])
-                    DFT_rounded[i,      j      ,1] = coeff_round(DFT_rounded[i,      j      ,1])
-                    DFT_rounded[x_p-1-i,j      ,1] = coeff_round(DFT_rounded[x_p-1-i,j      ,1])
-                    DFT_rounded[i,      y_p-1-j,1] = coeff_round(DFT_rounded[i,      y_p-1-j,1])
-                    DFT_rounded[x_p-1-i,y_p-1-j,1] = coeff_round(DFT_rounded[x_p-1-i,y_p-1-j,1])
-
-            for i in range(n):
-                for j in range(n):
-                    DFT_rounded[i,      j      ,0] = coeff_unround(DFT_rounded[i,      j      ,0])
-                    DFT_rounded[x_p-1-i,j      ,0] = coeff_unround(DFT_rounded[x_p-1-i,j      ,0])
-                    DFT_rounded[i,      y_p-1-j,0] = coeff_unround(DFT_rounded[i,      y_p-1-j,0])
-                    DFT_rounded[x_p-1-i,y_p-1-j,0] = coeff_unround(DFT_rounded[x_p-1-i,y_p-1-j,0])
-                    DFT_rounded[i,      j      ,1] = coeff_unround(DFT_rounded[i,      j      ,1])
-                    DFT_rounded[x_p-1-i,j      ,1] = coeff_unround(DFT_rounded[x_p-1-i,j      ,1])
-                    DFT_rounded[i,      y_p-1-j,1] = coeff_unround(DFT_rounded[i,      y_p-1-j,1])
-                    DFT_rounded[x_p-1-i,y_p-1-j,1] = coeff_unround(DFT_rounded[x_p-1-i,y_p-1-j,1])
-
-            dft_image_rounded_re = np.zeros((2*n + 1, 2*n + 1))
-            dft_image_rounded_im = np.zeros((2*n + 1, 2*n + 1))
-
-            dft_image_rounded_re[   :n,   :n] = DFT_rounded[-n: ,-n: ,0]
-            dft_image_rounded_re[n+1: ,   :n] = DFT_rounded[  :n,-n: ,0]
-            dft_image_rounded_re[   :n,n+1: ] = DFT_rounded[-n: ,  :n,0]
-            dft_image_rounded_re[n+1: ,n+1: ] = DFT_rounded[  :n,  :n,0]
-
-            dft_image_rounded_im[   :n,   :n] = DFT_rounded[-n: ,-n: ,1]
-            dft_image_rounded_im[n+1: ,   :n] = DFT_rounded[  :n,-n: ,1]
-            dft_image_rounded_im[   :n,n+1: ] = DFT_rounded[-n: ,  :n,1]
-            dft_image_rounded_im[n+1: ,n+1: ] = DFT_rounded[  :n,  :n,1]
-
-            dft_image_rounded_re_log = np.log10(np.abs(dft_image_rounded_re))
-            dft_image_rounded_im_log = np.log10(np.abs(dft_image_rounded_im))
-
-            cv.imwrite("./test_build_DFT_image_rounded_re.jpg", dft_image_rounded_re * (256 / np.max(dft_image_rounded_re)))
-            cv.imwrite("./test_build_DFT_image_rounded_im.jpg", dft_image_rounded_im * (256 / np.max(dft_image_rounded_im)))
-            cv.imwrite("./test_build_DFT_image_rounded_re_log.jpg", dft_image_rounded_re_log * (256 / np.max(dft_image_rounded_re_log)))
-            cv.imwrite("./test_build_DFT_image_rounded_im_log.jpg", dft_image_rounded_im_log * (256 / np.max(dft_image_rounded_im_log)))
-
-            IDFT = cv.idft(DFT_rounded)
-            IDFT = cv.magnitude(IDFT[:,:,0],IDFT[:,:,1])
-            IDFT = IDFT * (np.max(plot) / np.max(IDFT))
-            IDFT = np.round(IDFT).astype(int)
-            IDFT = np.multiply(IDFT, plot >= 1)
-            cv.imwrite("./test_build_DFT_rounded_small.jpg", IDFT * (256 / np.max(IDFT)))
-            diff = ((plot - IDFT) ** 2) / len(plot.flatten())
-            RMS = np.sqrt(np.sum(diff))
-            print("##################################")
-            print("# R o u n d e d   D F T")
-            print("# n = " + str(n))
-            print("# RMS = " + str(RMS))       
+            # normalize so all values are between -1000 and 1000
+            DFT_max = 1000
+            DFT = DFT * (DFT_max / np.max(np.abs(DFT)))
 
             # in test mode: build an image as a visual representation 
             # of the DFT coefficients
-            dft_image_round_re = np.zeros((2*n + 1, 2*n + 1))
-            dft_image_round_im = np.zeros((2*n + 1, 2*n + 1))
+            if test_mode:
+                dft_image_re = np.zeros((2*n + 1, 2*n + 1))
+                dft_image_im = np.zeros((2*n + 1, 2*n + 1))
 
-            dft_image_round_re[   :n,   :n] = DFT_rounded[-n: ,-n: ,0]
-            dft_image_round_re[n+1: ,   :n] = DFT_rounded[  :n,-n: ,0]
-            dft_image_round_re[   :n,n+1: ] = DFT_rounded[-n: ,  :n,0]
-            dft_image_round_re[n+1: ,n+1: ] = DFT_rounded[  :n,  :n,0]
+                dft_image_re[   :n,   :n] = DFT[-n: ,-n: ,0]
+                dft_image_re[n+1: ,   :n] = DFT[  :n,-n: ,0]
+                dft_image_re[   :n,n+1: ] = DFT[-n: ,  :n,0]
+                dft_image_re[n+1: ,n+1: ] = DFT[  :n,  :n,0]
 
-            dft_image_round_im[   :n,   :n] = DFT_rounded[-n: ,-n: ,1]
-            dft_image_round_im[n+1: ,   :n] = DFT_rounded[  :n,-n: ,1]
-            dft_image_round_im[   :n,n+1: ] = DFT_rounded[-n: ,  :n,1]
-            dft_image_round_im[n+1: ,n+1: ] = DFT_rounded[  :n,  :n,1]
+                dft_image_im[   :n,   :n] = DFT[-n: ,-n: ,1]
+                dft_image_im[n+1: ,   :n] = DFT[  :n,-n: ,1]
+                dft_image_im[   :n,n+1: ] = DFT[-n: ,  :n,1]
+                dft_image_im[n+1: ,n+1: ] = DFT[  :n,  :n,1]
 
-            dft_image_round_re_log = np.log10(np.abs(dft_image_re))
-            dft_image_round_im_log = np.log10(np.abs(dft_image_im))
+                dft_image_re_log = np.log10(np.abs(dft_image_re))
+                dft_image_im_log = np.log10(np.abs(dft_image_im))
 
-            cv.imwrite("./test_build_DFT_image_re.jpg", dft_image_re * (256 / np.max(dft_image_re)))
-            cv.imwrite("./test_build_DFT_image_im.jpg", dft_image_im * (256 / np.max(dft_image_im)))
-            cv.imwrite("./test_build_DFT_image_re_log.jpg", dft_image_re_log * (256 / np.max(dft_image_re_log)))
-            cv.imwrite("./test_build_DFT_image_im_log.jpg", dft_image_im_log * (256 / np.max(dft_image_im_log)))
-        
-        address = DFT_mapping(n)
-        DFT_flat = np.zeros(n * n * 8).astype(int)
-        k_df = 0
-        for [i,j] in address:
-            i_s, j_s, k_s = [i,x-i-1], [j,y-j-1], [0, 1]
-            for i1 in i_s:
-                for j1 in j_s:
-                    for k1 in k_s:
-                        DFT_flat[k_df] = int(coeff_round(DFT[i1,j1,k1]))
-                        if test_mode: print(str(DFT[i1,j1,k1]) + " " + str(coeff_unround(coeff_round(DFT[i1,j1,k1]))))
-                        k_df += 1
-        if test_mode: 
-            with open("./DFT_flat_write.txt",'w') as file:
-                for f in DFT_flat:
-                    print(f, file = file)
+                cv.imwrite("./test_build_DFT_image_re.jpg", dft_image_re * (256 / np.max(dft_image_re)))
+                cv.imwrite("./test_build_DFT_image_im.jpg", dft_image_im * (256 / np.max(dft_image_im)))
+                cv.imwrite("./test_build_DFT_image_re_log.jpg", dft_image_re_log * (256 / np.max(dft_image_re_log)))
+                cv.imwrite("./test_build_DFT_image_im_log.jpg", dft_image_im_log * (256 / np.max(dft_image_im_log)))
+            
 
-        # k_df below is used to mark the last written coefficent
-        line_limit = 62 ** 68
-        k_df = 0
-        msg_bulk = ""
-        for k in range(1,len(DFT_flat)):
-            if int(max(DFT_flat[k_df:k]) + 1) ** (k - k_df) > line_limit:
-                if test_mode:
-                    print("coefficients " + str(k_df) + " through " + str(k-2))
-                    print(DFT_flat[k_df:k-1])
-                # start a new line with the character for the max coefficient
-                # on the line
-                if msg_bulk != "": msg_bulk = msg_bulk + "\n"
-                msg_bulk += msg_nextline_build(DFT_flat[k_df:k-1])
-                
-                k_df = k - 1
+                # in test mode: calculate the RMS due to curtailment
+                IDFT = cv.idft(DFT)
+                IDFT = cv.magnitude(IDFT[:,:,0],IDFT[:,:,1])
+                IDFT = IDFT * (np.max(plot) / np.max(IDFT))
+                IDFT = np.round(IDFT).astype(int)
+                IDFT = np.multiply(IDFT, plot >= 1)
+                cv.imwrite("./test_build_DFT_small.jpg", IDFT * (256 / np.max(IDFT)))
+                diff = ((plot - IDFT) ** 2) / len(plot.flatten())
+                RMS = np.sqrt(np.sum(diff))
+                print("##################################")
+                print("# C u r t a i l e d   D F T")
+                print("# n = " + str(n))
+                print("# RMS = " + str(RMS))
+                    
+                DFT_rounded = DFT.copy()
+                for i in range(n):
+                    for j in range(n):
+                        DFT_rounded[i,      j      ,0] = coeff_round(DFT_rounded[i,      j      ,0])
+                        DFT_rounded[x_p-1-i,j      ,0] = coeff_round(DFT_rounded[x_p-1-i,j      ,0])
+                        DFT_rounded[i,      y_p-1-j,0] = coeff_round(DFT_rounded[i,      y_p-1-j,0])
+                        DFT_rounded[x_p-1-i,y_p-1-j,0] = coeff_round(DFT_rounded[x_p-1-i,y_p-1-j,0])
+                        DFT_rounded[i,      j      ,1] = coeff_round(DFT_rounded[i,      j      ,1])
+                        DFT_rounded[x_p-1-i,j      ,1] = coeff_round(DFT_rounded[x_p-1-i,j      ,1])
+                        DFT_rounded[i,      y_p-1-j,1] = coeff_round(DFT_rounded[i,      y_p-1-j,1])
+                        DFT_rounded[x_p-1-i,y_p-1-j,1] = coeff_round(DFT_rounded[x_p-1-i,y_p-1-j,1])
 
-        k = len(DFT_flat)
-        if test_mode:
-            print("coefficients " + str(k_df) + " through " + str(k-1))
-            print(DFT_flat[k_df:k])
-        if msg_bulk != "": msg_bulk = msg_bulk + "\n"
-        msg_bulk += msg_nextline_build(DFT_flat[k_df:k]) 
+                for i in range(n):
+                    for j in range(n):
+                        DFT_rounded[i,      j      ,0] = coeff_unround(DFT_rounded[i,      j      ,0])
+                        DFT_rounded[x_p-1-i,j      ,0] = coeff_unround(DFT_rounded[x_p-1-i,j      ,0])
+                        DFT_rounded[i,      y_p-1-j,0] = coeff_unround(DFT_rounded[i,      y_p-1-j,0])
+                        DFT_rounded[x_p-1-i,y_p-1-j,0] = coeff_unround(DFT_rounded[x_p-1-i,y_p-1-j,0])
+                        DFT_rounded[i,      j      ,1] = coeff_unround(DFT_rounded[i,      j      ,1])
+                        DFT_rounded[x_p-1-i,j      ,1] = coeff_unround(DFT_rounded[x_p-1-i,j      ,1])
+                        DFT_rounded[i,      y_p-1-j,1] = coeff_unround(DFT_rounded[i,      y_p-1-j,1])
+                        DFT_rounded[x_p-1-i,y_p-1-j,1] = coeff_unround(DFT_rounded[x_p-1-i,y_p-1-j,1])
 
-        if len(msg_bulk.splitlines()[-1]) > 67: msg_bulk += "\n"
-        msg_bulk += "//"
+                dft_image_rounded_re = np.zeros((2*n + 1, 2*n + 1))
+                dft_image_rounded_im = np.zeros((2*n + 1, 2*n + 1))
 
-        # save the values of the DFT to a file
-        message_file_path = FS.orig_folder + "/" + FS.subject + ".txt"
+                dft_image_rounded_re[   :n,   :n] = DFT_rounded[-n: ,-n: ,0]
+                dft_image_rounded_re[n+1: ,   :n] = DFT_rounded[  :n,-n: ,0]
+                dft_image_rounded_re[   :n,n+1: ] = DFT_rounded[-n: ,  :n,0]
+                dft_image_rounded_re[n+1: ,n+1: ] = DFT_rounded[  :n,  :n,0]
 
-        with open(message_file_path,'w') as file:
-            if os.path.exists(FS.cwd + "/Message Template.txt"):
-                with open("Message Template.txt", "r") as file_r: message_template = file_r.read()
-                message_template_intro = message_template.split("<message>\n")[0]
-                message_template_outro = message_template.split("<message>\n")[1]
-                for m_t in message_template_intro.splitlines(): print(m_t, file = file)
-            print(str(x) + "/" + 
-                str(y) + "/" + 
-                str(n) + "/" + 
-                str(int(np.max(plot))) + "/" + 
-                dtg + "/" +
-                FS.subject + "/A1R1G2U3S5/",                                 file = file)
-            print(msg_bulk,                                                file = file)
-            if os.path.exists(FS.cwd + "/Message Template.txt"):
-                for m_t in message_template_outro.splitlines(): print(m_t, file = file)
-        os.startfile(message_file_path)
+                dft_image_rounded_im[   :n,   :n] = DFT_rounded[-n: ,-n: ,1]
+                dft_image_rounded_im[n+1: ,   :n] = DFT_rounded[  :n,-n: ,1]
+                dft_image_rounded_im[   :n,n+1: ] = DFT_rounded[-n: ,  :n,1]
+                dft_image_rounded_im[n+1: ,n+1: ] = DFT_rounded[  :n,  :n,1]
 
-#####################################################################
-# m e s s a g e   - >   i m a g e
-#####################################################################
-elif FS.ext.lower() == ".txt" or FS.ext.lower() == ".eml":
-    with open(orig_path,'r') as file: msg = file.read()
-    m = msg_read(msg)
-    plot_idft = cv.idft(m.DFT)
+                dft_image_rounded_re_log = np.log10(np.abs(dft_image_rounded_re))
+                dft_image_rounded_im_log = np.log10(np.abs(dft_image_rounded_im))
 
-    FS.update(m.subject)
-    c = config_read(FS.config)
-    scale = scale_build_RGB(c.scale)
+                cv.imwrite("./test_build_DFT_image_rounded_re.jpg", dft_image_rounded_re * (256 / np.max(dft_image_rounded_re)))
+                cv.imwrite("./test_build_DFT_image_rounded_im.jpg", dft_image_rounded_im * (256 / np.max(dft_image_rounded_im)))
+                cv.imwrite("./test_build_DFT_image_rounded_re_log.jpg", dft_image_rounded_re_log * (256 / np.max(dft_image_rounded_re_log)))
+                cv.imwrite("./test_build_DFT_image_rounded_im_log.jpg", dft_image_rounded_im_log * (256 / np.max(dft_image_rounded_im_log)))
 
-    # normalize the array and store as the output image
-    plot_out = cv.magnitude(plot_idft[:,:,0], plot_idft[:,:,1])
-    plot_out = np.array(m.max * (plot_out - np.min(plot_out)) / (np.max(plot_out) - np.min(plot_out))).astype(int)
+                IDFT = cv.idft(DFT_rounded)
+                IDFT = cv.magnitude(IDFT[:,:,0],IDFT[:,:,1])
+                IDFT = IDFT * (np.max(plot) / np.max(IDFT))
+                IDFT = np.round(IDFT).astype(int)
+                IDFT = np.multiply(IDFT, plot >= 1)
+                cv.imwrite("./test_build_DFT_rounded_small.jpg", IDFT * (256 / np.max(IDFT)))
+                diff = ((plot - IDFT) ** 2) / len(plot.flatten())
+                RMS = np.sqrt(np.sum(diff))
+                print("##################################")
+                print("# R o u n d e d   D F T")
+                print("# n = " + str(n))
+                print("# RMS = " + str(RMS))       
 
-    image = image_restore(plot_out,m.subject,scale)
+                # in test mode: build an image as a visual representation 
+                # of the DFT coefficients
+                dft_image_round_re = np.zeros((2*n + 1, 2*n + 1))
+                dft_image_round_im = np.zeros((2*n + 1, 2*n + 1))
 
-    cv.imwrite(FS.orig_folder + m.subject + "_out.jpg",image)
+                dft_image_round_re[   :n,   :n] = DFT_rounded[-n: ,-n: ,0]
+                dft_image_round_re[n+1: ,   :n] = DFT_rounded[  :n,-n: ,0]
+                dft_image_round_re[   :n,n+1: ] = DFT_rounded[-n: ,  :n,0]
+                dft_image_round_re[n+1: ,n+1: ] = DFT_rounded[  :n,  :n,0]
 
-    os.startfile(FS.orig_folder + m.subject + "_out.jpg")
+                dft_image_round_im[   :n,   :n] = DFT_rounded[-n: ,-n: ,1]
+                dft_image_round_im[n+1: ,   :n] = DFT_rounded[  :n,-n: ,1]
+                dft_image_round_im[   :n,n+1: ] = DFT_rounded[-n: ,  :n,1]
+                dft_image_round_im[n+1: ,n+1: ] = DFT_rounded[  :n,  :n,1]
+
+                dft_image_round_re_log = np.log10(np.abs(dft_image_re))
+                dft_image_round_im_log = np.log10(np.abs(dft_image_im))
+
+                cv.imwrite("./test_build_DFT_image_re.jpg", dft_image_re * (256 / np.max(dft_image_re)))
+                cv.imwrite("./test_build_DFT_image_im.jpg", dft_image_im * (256 / np.max(dft_image_im)))
+                cv.imwrite("./test_build_DFT_image_re_log.jpg", dft_image_re_log * (256 / np.max(dft_image_re_log)))
+                cv.imwrite("./test_build_DFT_image_im_log.jpg", dft_image_im_log * (256 / np.max(dft_image_im_log)))
+            
+            address = DFT_mapping(n)
+            DFT_flat = np.zeros(n * n * 8).astype(int)
+            k_df = 0
+            for [i,j] in address:
+                i_s, j_s, k_s = [i,x-i-1], [j,y-j-1], [0, 1]
+                for i1 in i_s:
+                    for j1 in j_s:
+                        for k1 in k_s:
+                            DFT_flat[k_df] = int(coeff_round(DFT[i1,j1,k1]))
+                            if test_mode: print(str(DFT[i1,j1,k1]) + " " + str(coeff_unround(coeff_round(DFT[i1,j1,k1]))))
+                            k_df += 1
+            if test_mode: 
+                with open("./DFT_flat_write.txt",'w') as file:
+                    for f in DFT_flat:
+                        print(f, file = file)
+
+            # k_df below is used to mark the last written coefficent
+            line_limit = 62 ** 68
+            k_df = 0
+            msg_bulk = ""
+            for k in range(1,len(DFT_flat)):
+                if int(max(DFT_flat[k_df:k]) + 1) ** (k - k_df) > line_limit:
+                    if test_mode:
+                        print("coefficients " + str(k_df) + " through " + str(k-2))
+                        print(DFT_flat[k_df:k-1])
+                    # start a new line with the character for the max coefficient
+                    # on the line
+                    if msg_bulk != "": msg_bulk = msg_bulk + "\n"
+                    msg_bulk += msg_nextline_build(DFT_flat[k_df:k-1])
+                    
+                    k_df = k - 1
+
+            k = len(DFT_flat)
+            if test_mode:
+                print("coefficients " + str(k_df) + " through " + str(k-1))
+                print(DFT_flat[k_df:k])
+            if msg_bulk != "": msg_bulk = msg_bulk + "\n"
+            msg_bulk += msg_nextline_build(DFT_flat[k_df:k]) 
+
+            if len(msg_bulk.splitlines()[-1]) > 67: msg_bulk += "\n"
+            msg_bulk += "//"
+
+            # save the values of the DFT to a file
+            message_file_path = FS.orig_folder + "/" + FS.subject + ".txt"
+
+            with open(message_file_path,'w') as file:
+                if os.path.exists(FS.cwd + "/Message Template.txt"):
+                    with open("Message Template.txt", "r") as file_r: message_template = file_r.read()
+                    message_template_intro = message_template.split("<message>\n")[0]
+                    message_template_outro = message_template.split("<message>\n")[1]
+                    for m_t in message_template_intro.splitlines(): print(m_t, file = file)
+                print(str(x) + "/" + 
+                    str(y) + "/" + 
+                    str(n) + "/" + 
+                    str(int(np.max(plot))) + "/" + 
+                    dtg + "/" +
+                    FS.subject + "/A1R1G2U3S5/",                                 file = file)
+                print(msg_bulk,                                                file = file)
+                if os.path.exists(FS.cwd + "/Message Template.txt"):
+                    for m_t in message_template_outro.splitlines(): print(m_t, file = file)
+            os.startfile(message_file_path)
+
+    #####################################################################
+    # m e s s a g e   - >   i m a g e
+    #####################################################################
+    elif FS.ext.lower() == ".txt" or FS.ext.lower() == ".eml":
+        with open(orig_path,'r') as file: msg = file.read()
+        m = msg_read(msg)
+        plot_idft = cv.idft(m.DFT)
+
+        FS.update(m.subject)
+        c = config_read(FS.config)
+        scale = scale_build_RGB(c.scale)
+
+        # normalize the array and store as the output image
+        plot_out = cv.magnitude(plot_idft[:,:,0], plot_idft[:,:,1])
+        plot_out = np.array(m.max * (plot_out - np.min(plot_out)) / (np.max(plot_out) - np.min(plot_out))).astype(int)
+
+        image = image_restore(plot_out,m.subject,scale)
+
+        cv.imwrite(FS.orig_folder + m.subject + "_out.jpg",image)
+
+        os.startfile(FS.orig_folder + m.subject + "_out.jpg")
