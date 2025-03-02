@@ -1160,8 +1160,8 @@ if not orig_path == "":
             message_file_path = FS.orig_folder + "/" + FS.subject + ".txt"
 
             with open(message_file_path,'w') as file:
-                if os.path.exists(FS.cwd + "/Message Template.txt"):
-                    with open("Message Template.txt", "r") as file_r: message_template = file_r.read()
+                if os.path.exists(FS.cwd + "/templates/Message Template.txt"):
+                    with open("./templates/Message Template.txt", "r") as file_r: message_template = file_r.read()
                     message_template_intro = message_template.split("<message>\n")[0]
                     message_template_outro = message_template.split("<message>\n")[1]
                     for m_t in message_template_intro.splitlines(): print(m_t, file = file)
@@ -1172,7 +1172,7 @@ if not orig_path == "":
                     dtg + "/" +
                     FS.subject + "/A1R1G2U3S5/",                                 file = file)
                 print(msg_bulk,                                                file = file)
-                if os.path.exists(FS.cwd + "/Message Template.txt"):
+                if os.path.exists(FS.cwd + "./templates//Message Template.txt"):
                     for m_t in message_template_outro.splitlines(): print(m_t, file = file)
             os.startfile(message_file_path)
 
