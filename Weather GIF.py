@@ -20,7 +20,7 @@ from time import gmtime
 # 8. Interpret build the scalar array into the original input image
 # 9. Overlay a standard image template over the top of the scalar array
 
-test_mode = False
+test_mode = True
 
 #####################################################################
 # B u i l d   C l a s s e s 
@@ -960,6 +960,7 @@ if not orig_path == "":
             # turn the image into a scalar plot and then smooth it over
             plot = plot_scale(image.copy())
             plot = np.array(plot).astype(float)
+            if test_mode: cv.imwrite("./test_build_plot_raw.jpg", plot * (256 / np.max(plot)))
             plot = plot_smooth(plot,20)
             plot = plot_mirror_edge(plot)
             plot = plot_round(plot)
@@ -1010,6 +1011,14 @@ if not orig_path == "":
                 cv.imwrite("./test_build_DFT_image_re_log.jpg", dft_image_re_log * (256 / np.max(dft_image_re_log)))
                 cv.imwrite("./test_build_DFT_image_im_log.jpg", dft_image_im_log * (256 / np.max(dft_image_im_log)))
             
+                # write the full DFT
+                DFT_0 = cv.dft(np.float32(plot),flags=cv.DFT_COMPLEX_OUTPUT)
+                # dft_image_full_re = np.roll(np.roll(np.log(DFT[:,:,0]), len(DFT)//2, axis = 0), len(DFT[0])//2, axis = 1)
+                # dft_image_full_im = np.roll(np.roll(np.log(DFT[:,:,1]), len(DFT)//2, axis = 0), len(DFT[0])//2, axis = 1)
+                dft_image_full_re = np.roll(np.roll(np.log10(np.abs(DFT_0[:,:,0])), len(DFT_0)//2, axis = 0), len(DFT_0[0])//2, axis = 1)
+                dft_image_full_im = np.roll(np.roll(np.log10(np.abs(DFT_0[:,:,1])), len(DFT_0)//2, axis = 0), len(DFT_0[0])//2, axis = 1)
+                cv.imwrite("./test_build_DFT_image_full_re_log.jpg", dft_image_full_re * (256 / np.max(dft_image_full_re)))
+                cv.imwrite("./test_build_DFT_image_full_im_log.jpg", dft_image_full_im * (256 / np.max(dft_image_full_im)))
 
                 # in test mode: calculate the RMS due to curtailment
                 IDFT = cv.idft(DFT)
