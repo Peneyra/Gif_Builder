@@ -6,6 +6,7 @@ import tkinter as Tk
 from tkinter import messagebox
 from tkinter.filedialog import askopenfilename
 from PIL import ImageTk, Image
+from time import gmtime
 
 
 # The goal for this progam is to:
@@ -54,39 +55,57 @@ class msg_read:
     def __init__(self,msg):
         header = True
         footer = False
+        k_mr = 0
         for m in msg.splitlines():
             if header:
-                if "WXYZ" in m:
+                if "A1R1G2U3S5" in m:
                     header = False
                     S = m.split("/")
-                    self.x, self.y, self.n, self.max = [int(k) for k in S[0:4]]
+                    x, y, n, max = [int(k) for k in S[0:4]]
+                    self.x = x
+                    self.y = y
+                    self.n = n
+                    self.max = max
                     self.dtg = m.split("/")[4]
                     self.subject = m.split("/")[5]
-                    i, j, index = 0, 0, 0
-                    i_s, j_s = [i,int(S[0])-i-1], [j,int(S[1])-j-1]
                     # initialize the DFT
-                    self.DFT = np.zeros((int(S[0]),int(S[1]),2))
-            else:
-                n1 = 0
-                while n1 + 2 <= len(m):
-                    if not '/' in m[n1:n1+2] and not footer:
-                        val = c_str(m[n1:n1+2])
-                        # place c in the array
-                        k1 = int(index % 2)
-                        j1 = int(((index - k1) / 2) % 2)
-                        i1 = int(((index - k1 - (2 * j1)) / 4) % 2)
-                        self.DFT[i_s[i1],j_s[j1],k1] = val
-                        index += 1
-                        if index == 8:
-                            j = (j + 1) % int(S[2])
-                            j_s = [j,int(S[1])-j-1]
-                            if j == 0:
-                                i = i + 1
-                                i_s = [i,int(S[0])-i-1]
-                            index = 0
-                    else:
+                    self.DFT = np.zeros((x,y,2))
+                    address = DFT_mapping(n)
+                    DFT_flat = np.zeros(n * n * 8).astype(int)
+            elif not footer:
+                m_mr = aA12dec(m[0])
+                m = m[1:]
+                line_int = 0
+                for a in m[::-1]:
+                    if a == "/":
                         footer = True
-                    n1 += 2
+                    else:
+                        line_int = (62 * line_int) + aA12dec(a)
+                        if test_mode: print(line_int)
+                DFT_flat_dummy = []
+                while line_int > 0:
+                    if line_int == m_mr:
+                        line_int = 0
+                    else:
+                        DFT_flat_dummy.append(int(line_int % (m_mr)))
+                        line_int = int((line_int - (line_int % (m_mr))) // (m_mr))
+                    if test_mode: print(line_int)
+                if test_mode: print(DFT_flat_dummy)
+                for dfd in DFT_flat_dummy[::-1]:
+                    DFT_flat[k_mr] = dfd
+                    k_mr += 1
+        k_df = 0
+        if test_mode:
+            with open("./debug/DFT_flat_read.txt",'w') as file:
+                for f in DFT_flat:
+                    if test_mode: print(f, file = file)                       
+        for [i,j] in address:
+            i_s, j_s, k_s = [i,x-i-1], [j,y-j-1], [0, 1]
+            for i1 in i_s:
+                for j1 in j_s:
+                    for k1 in k_s:
+                        self.DFT[i1,j1,k1] = coeff_unround(DFT_flat[k_df])
+                        k_df += 1
 
 class config_read():
     def __init__(self, file_path):
@@ -201,9 +220,10 @@ def plot_scale(image):
         plot_out = plot_out + (plot_bool.astype(int) * (i + 1))
     return plot_out
 
-# function to smooth out the colors
-def plot_smooth(arr,repeat,line):
+# function to smooth out the colors and crop out the borders
+def plot_smooth(arr,repeat):
     arr_out = np.copy(arr)
+    # use queen smoothing to get rid of non-colored lines
     for r in range(repeat):
         arr_tmp = np.roll(np.roll(np.copy(arr_out), -1, axis = 0), -1, axis = 1).astype(np.float64)
         arr_tmp[0, :] = np.zeros_like(arr_tmp[0, :])
@@ -211,34 +231,86 @@ def plot_smooth(arr,repeat,line):
         arr_tmp[:, 0] = np.zeros_like(arr_tmp[:, 0])
         arr_tmp[:,-1] = np.zeros_like(arr_tmp[:,-1])
         arr_add = np.zeros_like(arr_out).astype(np.float64)
-
-        if line: arr_cnt = np.zeros_like(arr_out).astype(np.float64)
+        arr_cnt = np.zeros_like(arr_out).astype(np.float64)
 
         for (i, j) in [(1,0),(1,0),(1,1),(1,1),(-1,0),(-1,0),(-1,1),(-1,1)]:
             arr_tmp = np.roll(arr_tmp, i, axis = j)
             arr_add = arr_add + arr_tmp
+            arr_cnt = arr_cnt + np.array(arr_tmp != 0).astype(type(arr_cnt[0,0]))
 
-            if line: arr_cnt = arr_cnt + np.array(arr_tmp != 0).astype(type(arr_cnt[0,0]))
+        arr_add = np.divide(arr_add, arr_cnt, out = np.zeros_like(arr_add), where=arr_cnt!=0)
 
-        if line: 
-            arr_add = np.divide(arr_add, arr_cnt, out = np.zeros_like(arr_add), where=arr_cnt!=0)
-        else:
-            arr_add = arr_add / 8
-
-        if test_mode: cv.imwrite('./test_add_' + str(r) + '.jpg', 10 * arr_add)
-        if test_mode and line: cv.imwrite('./test_cnt_' + str(r) + '.jpg', 10 * arr_cnt)
+        if test_mode: cv.imwrite('./debug/test_add_' + str(r) + '.jpg', 10 * arr_add)
+        if test_mode: cv.imwrite('./debug/test_cnt_' + str(r) + '.jpg', 10 * arr_cnt)
 
         arr_out = arr_out + np.array(np.multiply(arr_add,arr_out == 0)).astype(np.uint8)
 
-        if test_mode: cv.imwrite('./test_' + str(r) + '.jpg', 10 * arr_out)
+        if test_mode: cv.imwrite('./debug/test_' + str(r) + '.jpg', 10 * arr_out)
     return arr_out
+
+# function to smooth out the colors and crop out the borders
+def plot_round(arr):
+    repeat = 10
+    arr_out = np.copy(arr)
+    # use queen smoothing to get rid of non-colored lines
+    for r in range(repeat):
+        arr_tmp = np.roll(np.roll(np.copy(arr_out), -1, axis = 0), -1, axis = 1).astype(np.float64)
+        # zero the edges
+        arr_tmp[0, :] = np.zeros_like(arr_tmp[0, :])
+        arr_tmp[-1,:] = np.zeros_like(arr_tmp[-1,:])
+        arr_tmp[:, 0] = np.zeros_like(arr_tmp[:, 0])
+        arr_tmp[:,-1] = np.zeros_like(arr_tmp[:,-1])
+        arr_add = np.zeros_like(arr_out).astype(np.float64)
+        arr_cnt = np.zeros_like(arr_out).astype(float)
+
+        # queen smoothing
+        for (i, j) in [(1,0),(1,0),(1,1),(1,1),(-1,0),(-1,0),(-1,1),(-1,1)]:
+            arr_tmp = np.roll(arr_tmp, i, axis = j)
+            arr_add = arr_add + arr_tmp
+            arr_cnt = arr_cnt + np.array(arr_tmp != 0).astype(type(arr_cnt[0,0]))
+
+        arr_cnt = arr_cnt * 6
+        arr_add = np.divide(arr_add, arr_cnt, out = np.zeros_like(arr_add), where=arr_cnt!=0)
+
+        if test_mode: cv.imwrite('./debug/test_add_' + str(r) + '.jpg', 10 * arr_add)
+        if test_mode: cv.imwrite('./debug/test_cnt_' + str(r) + '.jpg', 10 * arr_cnt)
+
+        arr_out = arr_out + np.array(np.multiply(arr_add,arr_out == 0)).astype(np.uint8)
+
+        if test_mode: cv.imwrite('./debug/test_' + str(r) + '.jpg', 10 * arr_out)
+    return arr_out
+
+def plot_mirror_edge(arr):
+    # start by determining the top-bottom-left-right boundaries of the plot
+    (x_pme, y_pme) = arr.shape
+    crop_y1, crop_y2, crop_x1, crop_x2 = 0, 0, 0, 0
+
+    for i in range(x_pme):
+        if np.sum(arr[i,:]) != 0 and crop_x1 == 0:
+            crop_x1 = i
+        if np.sum(arr[i,:]) == 0 and crop_x1 != 0 and crop_x2 == 0:
+            crop_x2 = i - 1
+
+    for i in range(y_pme):
+        if np.sum(arr[:,i]) != 0 and crop_y1 == 0:
+            crop_y1 = i
+        if np.sum(arr[:,i]) == 0 and crop_y1 != 0 and crop_y2 == 0:
+            crop_y2 = i - 1
+
+    arr[0:crop_x1, :] = np.flip(arr[crop_x1:2*crop_x1, :], axis = 0)
+    arr[crop_x2:x_pme, :] = np.flip(arr[(2*crop_x2)-x_pme:crop_x2, :], axis = 0)
+
+    arr[:,0:crop_y1] = np.flip(arr[:, crop_y1:2*crop_y1], axis = 1)
+    arr[:,crop_y2:y_pme] = np.flip(arr[:, (2*crop_y2)-y_pme:crop_y2], axis = 1)
+    return arr
+
 
 def image_restore(plot,subject,scale):
     x, y = plot.shape
     image = np.zeros((x,y,3)).astype(int)
     empty = [0, 0, 124]
     var = 50
-    if test_mode: cv.imwrite("./test_restore_plot.jpg", plot * (256 / np.max(plot)))
+    if test_mode: cv.imwrite("./debug/test_restore_plot.jpg", plot * (256 / np.max(plot)))
 
     image_template = cv.imread('./templates/' + subject + '/' + subject + "_template.jpg")
 
@@ -251,11 +323,11 @@ def image_restore(plot,subject,scale):
         for j in range(3):
             im[:,:,j] = np.array(plot == i).astype(int) * scale[i, j]
         image = image + im
-        if test_mode: cv.imwrite("./test_restore_" + str(i) + ".jpg",image)
+        if test_mode: cv.imwrite("./debug/test_restore_" + str(i) + ".jpg",image)
 
     for i in range(3): 
         image[:,:,i] = np.multiply(np.array(plot_bool).astype(int),image[:,:,i]) + np.multiply(np.array(~plot_bool).astype(int), image_template[:,:,i])
-        if test_mode: cv.imwrite("./test_restore_f" + str(i) + ".jpg",image)
+        if test_mode: cv.imwrite("./debug/test_restore_f" + str(i) + ".jpg",image)
 
     # crop out a part of the image (namely the legend)
     ##################################################
@@ -263,25 +335,25 @@ def image_restore(plot,subject,scale):
     #              y1 = top most y,  y2 = bottom most y
 
     # crop the image to remove the legend
-    if c.crop_y1 !=0: image[:c.crop_y1, :, :] = image_template[:c.crop_y1, :, :].copy()
+    if c.crop_y1 !=0: image[:c.crop_y1, :, :] =  image_template[:c.crop_y1, :, :].copy()
     if test_mode:
-        cv.imwrite("./test_restore_cropped1.jpg",image_template[:c.crop_y1, :, :].copy())
-        cv.imwrite("./test_restore_crop1.jpg",image)
-    if c.crop_y2 !=0: image[c.crop_y2:, :, :] = image_template[c.crop_y2:, :, :].copy()
+        cv.imwrite("./debug/test_restore_cropped1.jpg",image_template[:c.crop_y1, :, :].copy())
+        cv.imwrite("./debug/test_restore_crop1.jpg",image)
+    if c.crop_y2 !=0: image[c.crop_y2:, :, :] =  image_template[c.crop_y2:, :, :].copy()
     if test_mode:
-        cv.imwrite("./test_restore_cropped2.jpg",image_template[c.crop_y2:, :, :].copy())
-        cv.imwrite("./test_restore_crop2.jpg",image)
-    if c.crop_x1 !=0: image[:, :c.crop_x1, :] = image_template[:, :c.crop_x1, :].copy()
+        cv.imwrite("./debug/test_restore_cropped2.jpg",image_template[c.crop_y2:, :, :].copy())
+        cv.imwrite("./debug/test_restore_crop2.jpg",image)
+    if c.crop_x1 !=0: image[:, :c.crop_x1, :] =  image_template[:, :c.crop_x1, :].copy()
     if test_mode:
-        cv.imwrite("./test_restore_cropped3.jpg",image_template[:, :c.crop_x1, :].copy())
-        cv.imwrite("./test_restore_crop3.jpg",image)
-    if c.crop_x2 !=0: image[:, c.crop_x2:, :] = image_template[:, c.crop_x2:, :].copy()
+        cv.imwrite("./debug/test_restore_cropped3.jpg",image_template[:, :c.crop_x1, :].copy())
+        cv.imwrite("./debug/test_restore_crop3.jpg",image)
+    if c.crop_x2 !=0: image[:, c.crop_x2:, :] =  image_template[:, c.crop_x2:, :].copy()
     if test_mode:
-        cv.imwrite("./test_restore_cropped4.jpg",image_template[:, c.crop_x2:, :].copy())
-        cv.imwrite("./test_restore_crop4.jpg",image)
+        cv.imwrite("./debug/test_restore_cropped4.jpg",image_template[:, c.crop_x2:, :].copy())
+        cv.imwrite("./debug/test_restore_crop4.jpg",image)
 
-    image = cv.putText(image, m.subject + " - " + m.dtg, (c.crop_x1, c.crop_y2 + 30), cv.FONT_HERSHEY_SIMPLEX,
-                       .5, (0,0,0), 2, cv.LINE_AA, False)
+    image = cv.putText(image, m.subject + " - " + m.dtg, (c.crop_x1, c.crop_y2 + 5), cv.FONT_HERSHEY_SIMPLEX,
+                       .5, (0,0,0), 1, cv.LINE_AA, False)
 
     return image
 
@@ -289,134 +361,109 @@ def image_restore(plot,subject,scale):
 #####################################################################
 # C o n v e r t   b a s e   1 0   < - >   b a s e   6 2
 #####################################################################
-# function to compress integers [-990000000, 990000000] into 2 digits
-def c_int(i):
-    ##################################################
-    # User Defined: start of negative chr codes
-    # define the chr() function displacement (ASCII code) for 'A' and 'a'
+# function to compress each coefficient into a single character from
+# a DFT array normalized to -1000 -> 1000
+def dec2aA1(i):    
+    if i < 10: return         str(i)
+    if i < 36: return         chr(i + ord('A') - 10)
+    return                    chr(i + ord('a') - 36)
 
-    # check if less than 100
-    if abs(i) < 100: return '00'
+def aA12dec(s):
+    try:
+        if int(s) < 10: return int(s)
+    except:
+        None
+    if ord(s) < ord('a'): 
+        return                 int(ord(s) + 10 - ord('A'))
+    else: return               int(ord(s) + 36 - ord('a'))
 
-    # D = chr(A) and d = chr(a)
-    D = 65
-    d = 97
+def coeff_round(x):
+    k_cr = 54
+    n_cr = 3
+    for i in range(n_cr):
+        for j in range(9):
+            if x > (9.5-j) * (10 ** (2 - i)): return k_cr
+            k_cr -= 1
+            if x < (j-9.5) * (10 ** (2 - i)): return k_cr
+            k_cr -= 1
+    return 0
 
-    # check if it is negative
-    neg = i < 0
+def coeff_unround(x):
+    if x == 0: return 0
+    k_cu = 1
+    n_cu = 3
+    for i in range(n_cu):
+        for j in range(2,11):
+            if x == k_cu: return (-1) * j * (10 ** i)
+            k_cu += 1
+            if x == k_cu: return        j * (10 ** i)
+            k_cu += 1
+    return 0
 
-    # the goal is to reduce 'i' to a number less than 2000 so it can be 
-    # converted to a base 62 (0-9,A-Z,a-z) and reduced to two characters
-    # so the first two numbers will be the first two significant digits
-    # and the last number will be the exponent. if negative, we add 1000.
-    r_str = str(int(abs(i)))[:2] + str(len(str(int(abs(i))-1)))
-    if neg: r = int(r_str) + 1000
-    else: r = int(r_str)
+def DFT_mapping(n):
+    # save all coefficients to a single flattened array organized by:
+    # 1 2 3 4 5 ...
+    # 2 2 3 4 5 ...
+    # 3 3 3 4 5 ...
+    # 4 4 4 4 5 ...
+    # 5 5 5 5 5 ...
+    # This organization will assist with maximum compression of the follow on message
+    # map all the addresses in the order you want them
+    address = [[0,0]] * (n * n)
+    k_a = 1
+    for k in range(1,n):
+        j = k
+        for i in range(k):
+            address[k_a] = [i, j]
+            k_a += 1
+        address[k_a] = [k, k]
+        k_a += 1
+        i = k
+        for j in range(k):
+            address[k_a] = [i, j]
+            k_a += 1
+    
+    return address
 
-    # now convert r to a base 62 number
-    r0_62 = int(np.floor(r / 62))
-    r1_62 = r - r0_62 * 62
+def msg_nextline_build(flat):
+    
+    # define the maximum for the selected coefficients.  Add one
+    # to allow the modulo function to produce the max value
+    # (otherwise, when the code runs coeff % max = 0 when we want
+    # the maximum out.)
+    m = int(max(flat)) + 1
+    line_str = dec2aA1(m)
 
-    if   r0_62 >= 36: r0 = chr(r0_62 + d - 36)
-    elif r0_62 >= 10: r0 = chr(r0_62 + D - 10)
-    else:             r0 = str(r0_62)
+    if flat[0] == 0:
+        line_int = m
+    else:
+        line_int = int(0)
 
-    if   r1_62 >= 36: r1 = chr(r1_62 + 97 - 36)
-    elif r1_62 >= 10: r1 = chr(r1_62 + 65 - 10)
-    else:             r1 = str(r1_62) 
+    for f in flat:
+        line_int = (m * line_int) + int(f)
+        if test_mode: print(line_int)
 
-    #if test_mode: 
-        #print(i)
-        #print(str(r) + " " + str(r0) + " " + str(r1))
+    while line_int > 0:
+        line_str += dec2aA1(line_int % 62)
+        line_int = (line_int - (line_int % 62)) // 62
+        # if test_mode: print(f"{line_int:d}")
 
-    return str(r0) + str(r1)
+    return line_str
 
-# function to uncompress the message wall of text
-def c_str(i):
-    ##################################################
-    # Must Match! : start of negative chr codes from dft.py
-    # define the chr() function displacement
-
-    if i == "00": return 0
-
-    D = 65
-    d = 97
-
-    # work backwards from the compression in dft.py
-    # start by converting to decimal
-    if   ord(i[0]) >= d: r0 = int(ord(i[0]) - d + 36)
-    elif ord(i[0]) >= D: r0 = int(ord(i[0]) - D + 10)
-    else:                r0 = int(i[0])
-
-    if   ord(i[1]) >= d: r1 = int(ord(i[1]) - d + 36)
-    elif ord(i[1]) >= D: r1 = int(ord(i[1]) - D + 10)
-    else:                r1 = int(i[1])
-
-    r_64 = (62 * r0) + r1
-    if r_64 > 1000: r_64 = (-1) * (r_64 - 1000)
-
-    r_str = str(r_64)
-    l = len(r_str)
-
-    r = int(r_str[:(l-1)]) * (10 ** (int(r_str[-1]) - 2))
-
-    return r
-
-# Code a list of addresses and order for the coefficients we care about.
-# The maximum coefficients fall inside the y = 1/x graph.  To obtain the
-# correct number of coefficients (50 coefficents to make a 400 character
-# long message) I used all whole blocks inside of y = 17 / x graph.
-def get_addresses():
-    r = np.zeros((48,2))
-    r[0, :] = [0, 0]
-    r[1, :] = [0, 1]
-    r[2, :] = [0, 2]
-    r[3, :] = [0, 3]
-    r[4, :] = [0, 4]
-    r[5, :] = [0, 5]
-    r[6, :] = [0, 6]
-    r[7, :] = [0, 7]
-    r[8, :] = [0, 8]
-    r[9, :] = [0, 9]
-    r[10,:] = [0,10]
-    r[11,:] = [0,11]
-    r[12,:] = [0,12]
-    r[13,:] = [0,13]
-    r[14,:] = [0,14]
-    r[15,:] = [1, 0]
-    r[16,:] = [1, 1]
-    r[17,:] = [1, 2]
-    r[18,:] = [1, 3]
-    r[19,:] = [1, 4]
-    r[20,:] = [1, 5]
-    r[21,:] = [1, 6]
-    r[22,:] = [1, 7]
-    r[23,:] = [2, 0]
-    r[24,:] = [2, 1]
-    r[25,:] = [2, 2]
-    r[26,:] = [2, 3]
-    r[27,:] = [2, 4]
-    r[28,:] = [3, 0]
-    r[29,:] = [3, 1]
-    r[30,:] = [3, 2]
-    r[31,:] = [3, 3]
-    r[32,:] = [4, 0]
-    r[33,:] = [4, 1]
-    r[34,:] = [4, 2]
-    r[35,:] = [5, 0]
-    r[36,:] = [5, 1]
-    r[37,:] = [6, 0]
-    r[38,:] = [6, 1]
-    r[39,:] = [7, 0]
-    r[40,:] = [7, 1]
-    r[41,:] = [8, 0]
-    r[42,:] = [9, 0]
-    r[43,:] = [10,0]
-    r[44,:] = [11,0]
-    r[45,:] = [12,0]
-    r[46,:] = [13,0]
-    r[47,:] = [14,0]
-    return r
+def month_name(m):
+    if m == 1: return "JAN"
+    elif m == 2: return "FEB" 
+    elif m == 3: return "MAR" 
+    elif m == 4: return "APR" 
+    elif m == 5: return "MAY" 
+    elif m == 6: return "JUN" 
+    elif m == 7: return "JUL" 
+    elif m == 8: return "AUG" 
+    elif m == 9: return "SEP" 
+    elif m == 10: return "OCT" 
+    elif m == 11: return "NOV" 
+    elif m == 12: return "DEC"
+    else: return None
 
 def allowalphanumeric(text):
     return text == "" or text.isalnum()
@@ -564,18 +611,26 @@ def build_template(image):
 
     def cancel_click():
         print("cancel clicked")
-        root.destroy()
-        return "quit"
+        global options
+        if options == []:
+            global quitter
+            quitter = "quit"
+            root.destroy()
+        else:
+            global image
+            root.destroy()
+            choose_template(image)
 
     def next_click():
         print("next clicked")
         global template_index
         global label_image
 
+        template_index += 1
+
         #####################################################################
         # A d v a n c e   y o u r   t e m p l a t e
-        if template_index < 5: 
-            template_index += 1
+        if template_index < 6: 
             if template_index == 2: show("image_orig")
             inst_text.config(text = inst_dict[template_index])
             print("template_index = " + str(template_index))
@@ -604,8 +659,6 @@ def build_template(image):
             image_template[:, :c.crop_x1, :] = np.uint8(255)
             image_template[:, c.crop_x2:, :] = np.uint8(255)
 
-
-            
             # build the scale
             for delta in [-10,-5,0,5,10]:
                 if c.scale == []:
@@ -620,7 +673,7 @@ def build_template(image):
 
             # get a plot of the image
             plot_template = plot_scale(image_template)
-            plot_mask = np.repeat(np.array(plot_smooth(plot_template,2,True) == 0).astype(int)[:,:,np.newaxis], 3, axis = 2)
+            plot_mask = np.repeat(np.array(plot_smooth(plot_template,2) == 0).astype(int)[:,:,np.newaxis], 3, axis = 2)
 
             image_template = np.multiply(image_template, plot_mask).astype(np.uint8)
             image_template[:,:,2] = image_template[:,:,2] + 125 * np.array(plot_mask[:,:,2] == 0).astype(int)
@@ -641,7 +694,7 @@ def build_template(image):
         print("back clicked")
         global template_index
         if template_index > 0: 
-            template_index += -1
+            template_index -= 1
             if template_index == 2: 
                 show("image_orig")
             else:
@@ -654,6 +707,7 @@ def build_template(image):
 
     def newtemplate_click():
         global subject_name
+        global image
         if subject_name.get() != "":
             FS.update(subject_name.get())
             if os.path.isfile(FS.template):
@@ -663,6 +717,9 @@ def build_template(image):
             cv.imwrite(FS.template,im_dict["image_template"])
             config_write(c)
             root.destroy()
+            choose_template(image)
+        else:
+            Tk.messagebox.showerror("Missing AOR name","Please name your template.")
 
     def askquestion_exists():
         answer = Tk.messagebox.askquestion("File Already Exists", "A template with this name already exists. Do you want to replace it?", icon = "error")
@@ -733,9 +790,10 @@ def choose_template(image):
         label_image.config(image = template_dict[sub])
 
     def cancel_click():
+        global quitter
         print("cancel clicked")
         root.destroy()
-        return "quit"
+        quitter = "quit"
 
     def new_click():
         # FIX build out what to do if the template does not exist
@@ -746,11 +804,18 @@ def choose_template(image):
 
     def select_click():
         global subject
-        print("select clicked")
-        FS.update(selection.get())
-        root.destroy()
+        global dtg
+        if not "Z" in entryDTG.get().upper():
+            Tk.messagebox.showerror("Missing DTG","Input the DTG shown in the image. Entry must contain a Z.")
+        else:
+            dtg = entryDTG.get()
+            print("select clicked")
+            FS.update(selection.get())
+            root.destroy()
 
     # set your global variables
+    global quitter
+    quitter = "never"
     bg_color = "light gray"
     image_x = 500
     image_y = 400
@@ -768,100 +833,93 @@ def choose_template(image):
     instructions_title = Tk.Label(frame_0, justify = "left", wraplength = image_x, 
                             font = ("Arial",16), bg = bg_color,
                             text = 
-                            "Choose a template.").pack(anchor = "w")
+                            "Choose a template and enter the DTG the image shows.").pack(anchor = "w")
     instructions_text = Tk.Label(frame_0, justify = "left", wraplength = image_x,
                                 font = ("Arial", 12), bg = bg_color,
                                 text = "If a template doesn't already exist, create " +
-                                "a new template. Note: units will not have access to " +
-                                "a new template until you upload a new template folder " +
-                                "and they subsequently download the new template folder.").pack(anchor = "w")
+                                "a new template.").pack(anchor = "w")
 
     #####################################################################
-    # B u i l d   F r a m e   1   =   D r o p d o w n   M e n u
+    # B u i l d   F r a m e   1   =   D r o p d o w n   M e n u,   
+    # D T G ,   B u t t o n s
     frame_1 = Tk.Frame(root, bg = bg_color)
     frame_1.pack(pady = 5)
 
     # build and populate teh drowpdown menu
+    global options
+    options = []
     if os.path.exists("./templates"):
-        options = os.listdir("./templates")
+        for o in os.listdir("./templates"):
+            o_path = "./templates/" + o + "/" + o
+            if os.path.exists(o_path + ".config") and os.path.exists(o_path + "_template.jpg"):
+                options.append(o)
     else:
         os.mkdir("./templates")
-        options = []
 
     if options == []:
         new_click()
     else:
         selection = Tk.StringVar()
         selection.set(options[0])
+        # display the dropdown menu
         drop = Tk.OptionMenu(frame_1, selection, *options, command = show)
-        drop.pack()
+        drop.pack(padx = 10, pady = 5, side = 'left')
+        
+        # display the DTG entry.  Populate it with the current ZULU time
+        zulu = f"{gmtime().tm_mday:02}" + f"{gmtime().tm_hour:02}" + "00Z" + \
+            month_name(gmtime().tm_mon) + str(gmtime().tm_year)
+
+
+        entryDTG = Tk.Entry(frame_1, validate = "key", validatecommand = (root.register(allowalphanumeric), "%P"))
+        entryDTG.pack(padx = 10, pady = 5 , side = 'left')
+        entryDTG.delete(0,Tk.END)
+        entryDTG.insert(0,zulu)
+
+        if not selection.get() == "":
+            button0 = Tk.Button(frame_1, 
+                                text = "Select Template", 
+                                command = select_click)
+            button0.pack(padx = 10, pady = 5, side = 'left')
+
+        button1 = Tk.Button(frame_1, text = "New Template", 
+                            command = new_click)
+        button1.pack(padx = 10, pady = 5 , side = 'left')
+
+        button2 = Tk.Button(frame_1, text = "Cancel", 
+                            command = cancel_click)
+        button2.pack(padx = 10, pady = 5 , side = 'left')
 
         #####################################################################
-        # B u i l d   F r a m e   2   =   T h e   T e m p l a t e
+        # B u i l d   F r a m e   2   =   I m a g e s
+        frame_2 = Tk.Frame(root, bg = bg_color)
+        frame_2.pack(padx = 10, pady = 5)
+
+        #####################################################################
+        # B u i l d   F r a m e   2   T e m p l a t e
         # populate a dictionary of template images
         template_dict = {}
         for op in options:
             os.chdir(FS.cwd + "/templates/" + op)
             template_dict[op] = ImageTk.PhotoImage(Image.open(op + "_template.jpg").resize((image_x, image_y)))
         os.chdir(FS.cwd)
-        frame_2 = Tk.Frame(root, height = image_y, width = image_x, bg = bg_color)
-        frame_2.pack(padx = 10, pady = 5)
+        frame_2_template = Tk.Frame(frame_2, height = image_y, width = image_x, bg = bg_color)
+        frame_2_template.pack(padx = 10, pady = 5, side = 'left')
         global label_image
-        label_image = Tk.Label(frame_2, image = template_dict[selection.get()])
+        label_image = Tk.Label(frame_2_template, image = template_dict[selection.get()])
         label_image.pack()
 
         #####################################################################
-        # B u i l d   F r a m e   3   =   T h e   I m a g e
+        # B u i l d   F r a m e   2   I m a g e
         # populate a dictionary of template images
-        frame_3 = Tk.Frame(root, height = image_y, width = image_x, bg = bg_color)
-        frame_3.pack(padx = 10, pady = 5)
+        frame_2_image = Tk.Frame(frame_2, height = image_y, width = image_x, bg = bg_color)
+        frame_2_image.pack(padx = 10, pady = 5, side = 'left')
         template_dict["orig"] = ImageTk.PhotoImage(Image.fromarray(cv.cvtColor(image, cv.COLOR_BGR2RGB)).resize((image_x, image_y)))
-        orig_image = Tk.Label(frame_3, image = template_dict["orig"])
+        orig_image = Tk.Label(frame_2_image, image = template_dict["orig"])
         orig_image.pack()
-
-        #####################################################################
-        # B u i l d   F r a m e   4   =   B u t t o n s
-        frame_4 = Tk.Frame(root, bg = bg_color)
-        frame_4.pack()
-
-        if not selection.get() == "":
-            button0 = Tk.Button(frame_4, 
-                                text = "Select Template", 
-                                command = select_click)
-            button0.pack(padx = 10, pady = 5, side = 'left')
-
-        button1 = Tk.Button(frame_4, text = "New Template", 
-                            command = new_click)
-        button1.pack(padx = 10, pady = 5 , side = 'left')
-
-        button2 = Tk.Button(frame_4, text = "Cancel", 
-                            command = cancel_click)
-        button2.pack(padx = 10, pady = 5 , side = 'left')
 
         root.attributes("-topmost", True)
         root.protocol("WM_DELETE_WINDOW", cancel_click)
         root.mainloop()
-
-def get_dtg():
-    def dtg_click():
-        global dtg
-        if not "Z" in frame_1.get().upper():
-            Tk.messagebox.showerror("Input a DTG in Zulu time to proceed.","Missing DTG")
-        else:
-            dtg = frame_1.get()
-            root.destroy()
-
-    global dtg
-    root = Tk.Tk()
-    root.title = "Enter DTG"
-    frame_0 = Tk.Label(root, text = "Enter the date time group for which the image displays.")
-    frame_0.pack()
-    frame_1 = Tk.Entry(root, validate = "key", validatecommand = (root.register(allowalphanumeric), "%P"))
-    frame_1.pack()
-    frame_2 = Tk.Button(root, text = "Ok", command = dtg_click)
-    frame_2.pack()
-    root.attributes("-topmost", True)
-    root.mainloop()
 
 #####################################################################
 # S t a r t   o f   _ _ m a i n _ _
@@ -869,157 +927,273 @@ def get_dtg():
 # open a file browser and save the file name as orig_path
 orig_path = askopenfilename()
 
-FS = File_Structure(orig_path)
+print(orig_path)
+if not orig_path == "":
+    FS = File_Structure(orig_path)
 
-#####################################################################
-# i m a g e   - >   m e s s a g e
-#####################################################################
-if FS.ext.lower() == ".gif":
-    gif = imageio.mimread(orig_path)
-    image = [cv.cvtColor(img, cv.COLOR_RGB2BGR) for img in gif][0]
-if FS.ext.lower() == ".jpg":
-    image = cv.imread(orig_path)
+    #####################################################################
+    # i m a g e   - >   m e s s a g e
+    #####################################################################
+    if FS.ext.lower() == ".gif":
+        gif = imageio.mimread(orig_path)
+        image = [cv.cvtColor(img, cv.COLOR_RGB2BGR) for img in gif][0]
+    if FS.ext.lower() == ".jpg":
+        image = cv.imread(orig_path)
 
-#####################################################################
-# i m a g e   - >   m e s s a g e
-#####################################################################
-# if we've defined an image, otherwise skip to except
-if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
-    x, y, z = image.shape
+    #####################################################################
+    # i m a g e   - >   m e s s a g e
+    #####################################################################
+    # if we've defined an image, otherwise skip to except
+    if FS.ext.lower() == ".gif" or FS.ext.lower() == ".jpg":
+        x, y, z = image.shape
 
-    if test_mode:
-        True
-    else:
-        choose_template(image)
+        if test_mode:
+            dtg = "000000ZJAN25"
+            quitter = "never"
+        else:
+            choose_template(image)
 
-    if not "c" in globals(): c = config_read(FS.config)
-    if not "scale" in globals(): scale = scale_build_RGB(c.scale)
+        if quitter == "never":
+            if not "c" in globals(): c = config_read(FS.config)
+            if not "scale" in globals(): scale = scale_build_RGB(c.scale)
 
-    # turn the image into a scalar plot and then smooth it over
-    plot = plot_scale(image.copy())
-    if test_mode: cv.imwrite("./test_build_plot_raw.jpg", plot)
-    plot = plot_smooth(plot,6,True)
-    plot = np.array(plot).astype(float)
-    # plot = plot_smooth(plot,100,False)
-    if test_mode: cv.imwrite("./test_build_plot_smooth.jpg", plot)
+            # turn the image into a scalar plot and then smooth it over
+            plot = plot_scale(image.copy())
+            plot = np.array(plot).astype(float)
+            if test_mode: cv.imwrite("./debug/test_build_plot_raw.jpg", plot * (256 / np.max(plot)))
+            plot = plot_smooth(plot,20)
+            plot = plot_mirror_edge(plot)
+            plot = plot_round(plot)
+            if test_mode: cv.imwrite("./debug/test_build_plot_smooth.jpg", plot * (256 / np.max(plot)))
 
-    # Experimental
-    # try replacing zeros with a lower level DFT restoration
-    n_smooth = 3
-    dft_smooth = cv.dft(np.float32(plot),flags=cv.DFT_COMPLEX_OUTPUT)
-    dft_smooth[n_smooth:x-n_smooth,:,:] = np.zeros((x-2*n_smooth,y,2))
-    dft_smooth[:,n_smooth:y-n_smooth,:] = np.zeros((x,y-2*n_smooth,2))
-    idft_smooth = cv.idft(dft_smooth)
-    idft_smooth = cv.magnitude(idft_smooth[:,:,0],idft_smooth[:,:,1])
-    idft_smooth = np.multiply(idft_smooth, np.array(plot == 0).astype(int))
-    idft_smooth = idft_smooth * (np.max(plot) / np.max(idft_smooth))
-    plot = idft_smooth + plot
-    # End experimental
+            ################################################################
+            # r u n    D F T 
+            ################################################################
+            DFT = cv.dft(np.float32(plot),flags=cv.DFT_COMPLEX_OUTPUT)
 
-    ################################################################
-    # r u n    D F T 
-    ################################################################
-    DFT = cv.dft(np.float32(plot),flags=cv.DFT_COMPLEX_OUTPUT)
+            #################################################################
+            # B u i l d   a   c u r t a i l e d   D F T 
+            # Use the coefficient list to build out a new DFT
+            # I have tried a few different shapes.  Turns out that a square
+            # at each corner of the 
+            (x_p, y_p) = plot.shape
+            
+            # only retain a nxn box in each quadrant of the DFT
+            n = 12
+            DFT[n:x_p-1-n,:,:] = np.zeros_like(DFT[n:x_p-1-n,:,:])
+            DFT[:,n:y_p-1-n,:] = np.zeros_like(DFT[:,n:y_p-1-n,:])
 
-    #################################################################
-    # User defined: # DFT coefficients
-    # number of terms will be ((n * 2) ^ 2) * 2
-    n = 40
+            # normalize so all values are between -1000 and 1000
+            DFT_max = 1000
+            DFT = DFT * (DFT_max / np.max(np.abs(DFT)))
 
-    # Remove higher frequency coefficients
-    DFT[n:x-n,:,:] = np.zeros_like(DFT[n:x-n,:,:])
-    DFT[:,n:y-n,:] = np.zeros_like(DFT[:,n:y-n,:])
+            # in test mode: build an image as a visual representation 
+            # of the DFT coefficients
+            if test_mode:
+                dft_image_re = np.zeros((2*n + 1, 2*n + 1))
+                dft_image_im = np.zeros((2*n + 1, 2*n + 1))
 
-    # in test mode: build an image as a visual representation 
-    # of the DFT coefficients
-    if test_mode:
-        dft_image_re = np.zeros((2*n + 1, 2*n + 1))
-        dft_image_im = np.zeros((2*n + 1, 2*n + 1))
+                dft_image_re[   :n,   :n] = DFT[-n: ,-n: ,0]
+                dft_image_re[n+1: ,   :n] = DFT[  :n,-n: ,0]
+                dft_image_re[   :n,n+1: ] = DFT[-n: ,  :n,0]
+                dft_image_re[n+1: ,n+1: ] = DFT[  :n,  :n,0]
 
-        dft_image_re[   :n,   :n] = DFT[-n: ,-n: ,0]
-        dft_image_re[n+1: ,   :n] = DFT[  :n,-n: ,0]
-        dft_image_re[   :n,n+1: ] = DFT[-n: ,  :n,0]
-        dft_image_re[n+1: ,n+1: ] = DFT[  :n,  :n,0]
+                dft_image_im[   :n,   :n] = DFT[-n: ,-n: ,1]
+                dft_image_im[n+1: ,   :n] = DFT[  :n,-n: ,1]
+                dft_image_im[   :n,n+1: ] = DFT[-n: ,  :n,1]
+                dft_image_im[n+1: ,n+1: ] = DFT[  :n,  :n,1]
 
-        dft_image_im[   :n,   :n] = DFT[-n: ,-n: ,1]
-        dft_image_im[n+1: ,   :n] = DFT[  :n,-n: ,1]
-        dft_image_im[   :n,n+1: ] = DFT[-n: ,  :n,1]
-        dft_image_im[n+1: ,n+1: ] = DFT[  :n,  :n,1]
+                dft_image_re_log = np.log10(np.abs(dft_image_re))
+                dft_image_im_log = np.log10(np.abs(dft_image_im))
 
-        cv.imwrite("./test_build_DFT_image_re.jpg", dft_image_re * (256 / np.max(dft_image_re)))
-        cv.imwrite("./test_build_DFT_image_im.jpg", dft_image_im * (256 / np.max(dft_image_im)))
-        
+                cv.imwrite("./debug/test_build_DFT_image_re.jpg", dft_image_re * (256 / np.max(dft_image_re)))
+                cv.imwrite("./debug/test_build_DFT_image_im.jpg", dft_image_im * (256 / np.max(dft_image_im)))
+                cv.imwrite("./debug/test_build_DFT_image_re_log.jpg", dft_image_re_log * (256 / np.max(dft_image_re_log)))
+                cv.imwrite("./debug/test_build_DFT_image_im_log.jpg", dft_image_im_log * (256 / np.max(dft_image_im_log)))
+            
+                # write the full DFT
+                DFT_0 = cv.dft(np.float32(plot),flags=cv.DFT_COMPLEX_OUTPUT)
+                # dft_image_full_re = np.roll(np.roll(np.log(DFT[:,:,0]), len(DFT)//2, axis = 0), len(DFT[0])//2, axis = 1)
+                # dft_image_full_im = np.roll(np.roll(np.log(DFT[:,:,1]), len(DFT)//2, axis = 0), len(DFT[0])//2, axis = 1)
+                dft_image_full_re = np.roll(np.roll(np.log10(np.abs(DFT_0[:,:,0])), len(DFT_0)//2, axis = 0), len(DFT_0[0])//2, axis = 1)
+                dft_image_full_im = np.roll(np.roll(np.log10(np.abs(DFT_0[:,:,1])), len(DFT_0)//2, axis = 0), len(DFT_0[0])//2, axis = 1)
+                cv.imwrite("./debug/test_build_DFT_image_full_re_log.jpg", dft_image_full_re * (256 / np.max(dft_image_full_re)))
+                cv.imwrite("./debug/test_build_DFT_image_full_im_log.jpg", dft_image_full_im * (256 / np.max(dft_image_full_im)))
 
-    # in test mode: calculate the RMS of the difference between
-    # the input and the output
-    if test_mode: 
-        IDFT = cv.idft(DFT)
-        IDFT = cv.magnitude(IDFT[:,:,0],IDFT[:,:,1])
-        IDFT = IDFT * (np.max(plot) / np.max(IDFT))
-        cv.imwrite("./test_build_DFT_small.jpg", IDFT * (256 / np.max(IDFT)))
-        diff = (plot - IDFT) ** 2
-        RMS = np.sqrt(np.sum(diff))
-        print("##################################")
-        print("# n_smooth = " + str(n_smooth))
-        print("# n = " + str(n))
-        print("# RMS = " + str(RMS))
-        
+                # in test mode: calculate the RMS due to curtailment
+                IDFT = cv.idft(DFT)
+                IDFT = cv.magnitude(IDFT[:,:,0],IDFT[:,:,1])
+                IDFT = IDFT * (np.max(plot) / np.max(IDFT))
+                IDFT = np.round(IDFT).astype(int)
+                IDFT = np.multiply(IDFT, plot >= 1)
+                cv.imwrite("./debug/test_build_DFT_small.jpg", IDFT * (256 / np.max(IDFT)))
+                diff = ((plot - IDFT) ** 2) / len(plot.flatten())
+                RMS = np.sqrt(np.sum(diff))
+                print("##################################")
+                print("# C u r t a i l e d   D F T")
+                print("# n = " + str(n))
+                print("# RMS = " + str(RMS))
+                    
+                DFT_rounded = DFT.copy()
+                for i in range(n):
+                    for j in range(n):
+                        DFT_rounded[i,      j      ,0] = coeff_round(DFT_rounded[i,      j      ,0])
+                        DFT_rounded[x_p-1-i,j      ,0] = coeff_round(DFT_rounded[x_p-1-i,j      ,0])
+                        DFT_rounded[i,      y_p-1-j,0] = coeff_round(DFT_rounded[i,      y_p-1-j,0])
+                        DFT_rounded[x_p-1-i,y_p-1-j,0] = coeff_round(DFT_rounded[x_p-1-i,y_p-1-j,0])
+                        DFT_rounded[i,      j      ,1] = coeff_round(DFT_rounded[i,      j      ,1])
+                        DFT_rounded[x_p-1-i,j      ,1] = coeff_round(DFT_rounded[x_p-1-i,j      ,1])
+                        DFT_rounded[i,      y_p-1-j,1] = coeff_round(DFT_rounded[i,      y_p-1-j,1])
+                        DFT_rounded[x_p-1-i,y_p-1-j,1] = coeff_round(DFT_rounded[x_p-1-i,y_p-1-j,1])
 
-    # save the values of the DFT to a file
+                for i in range(n):
+                    for j in range(n):
+                        DFT_rounded[i,      j      ,0] = coeff_unround(DFT_rounded[i,      j      ,0])
+                        DFT_rounded[x_p-1-i,j      ,0] = coeff_unround(DFT_rounded[x_p-1-i,j      ,0])
+                        DFT_rounded[i,      y_p-1-j,0] = coeff_unround(DFT_rounded[i,      y_p-1-j,0])
+                        DFT_rounded[x_p-1-i,y_p-1-j,0] = coeff_unround(DFT_rounded[x_p-1-i,y_p-1-j,0])
+                        DFT_rounded[i,      j      ,1] = coeff_unround(DFT_rounded[i,      j      ,1])
+                        DFT_rounded[x_p-1-i,j      ,1] = coeff_unround(DFT_rounded[x_p-1-i,j      ,1])
+                        DFT_rounded[i,      y_p-1-j,1] = coeff_unround(DFT_rounded[i,      y_p-1-j,1])
+                        DFT_rounded[x_p-1-i,y_p-1-j,1] = coeff_unround(DFT_rounded[x_p-1-i,y_p-1-j,1])
 
-    message_file_path = FS.orig_folder + "/" + FS.subject + ".txt"
+                dft_image_rounded_re = np.zeros((2*n + 1, 2*n + 1))
+                dft_image_rounded_im = np.zeros((2*n + 1, 2*n + 1))
 
-    if test_mode:
-        dtg = "000000ZJAN25"
-    else:
-        get_dtg()
+                dft_image_rounded_re[   :n,   :n] = DFT_rounded[-n: ,-n: ,0]
+                dft_image_rounded_re[n+1: ,   :n] = DFT_rounded[  :n,-n: ,0]
+                dft_image_rounded_re[   :n,n+1: ] = DFT_rounded[-n: ,  :n,0]
+                dft_image_rounded_re[n+1: ,n+1: ] = DFT_rounded[  :n,  :n,0]
 
-    with open(message_file_path,'w') as file:
-        if os.path.exists(FS.cwd + "/Message Template.txt"):
-            with open("Message Template.txt", "r") as file_r: message_template = file_r.read()
-            message_template_intro = message_template.split("<message>")[0]
-            message_template_outro = message_template.split("<message>")[1]
-            for m_t in message_template_intro.splitlines(): print(m_t, file = file)
-        print(str(x) + "/" + 
-              str(y) + "/" + 
-              str(n) + "/" + 
-              str(int(np.max(plot))) + "/" + 
-              dtg + "/" +
-              FS.subject + "/WXYZ/", file = file)
-        S = ""
-        for i in range(n):
-            for j in range(n):
+                dft_image_rounded_im[   :n,   :n] = DFT_rounded[-n: ,-n: ,1]
+                dft_image_rounded_im[n+1: ,   :n] = DFT_rounded[  :n,-n: ,1]
+                dft_image_rounded_im[   :n,n+1: ] = DFT_rounded[-n: ,  :n,1]
+                dft_image_rounded_im[n+1: ,n+1: ] = DFT_rounded[  :n,  :n,1]
+
+                dft_image_rounded_re_log = np.log10(np.abs(dft_image_rounded_re))
+                dft_image_rounded_im_log = np.log10(np.abs(dft_image_rounded_im))
+
+                cv.imwrite("./debug/test_build_DFT_image_rounded_re.jpg", dft_image_rounded_re * (256 / np.max(dft_image_rounded_re)))
+                cv.imwrite("./debug/test_build_DFT_image_rounded_im.jpg", dft_image_rounded_im * (256 / np.max(dft_image_rounded_im)))
+                cv.imwrite("./debug/test_build_DFT_image_rounded_re_log.jpg", dft_image_rounded_re_log * (256 / np.max(dft_image_rounded_re_log)))
+                cv.imwrite("./debug/test_build_DFT_image_rounded_im_log.jpg", dft_image_rounded_im_log * (256 / np.max(dft_image_rounded_im_log)))
+
+                IDFT = cv.idft(DFT_rounded)
+                IDFT = cv.magnitude(IDFT[:,:,0],IDFT[:,:,1])
+                IDFT = IDFT * (np.max(plot) / np.max(IDFT))
+                IDFT = np.round(IDFT).astype(int)
+                IDFT = np.multiply(IDFT, plot >= 1)
+                cv.imwrite("./debug/test_build_DFT_rounded_small.jpg", IDFT * (256 / np.max(IDFT)))
+                diff = ((plot - IDFT) ** 2) / len(plot.flatten())
+                RMS = np.sqrt(np.sum(diff))
+                print("##################################")
+                print("# R o u n d e d   D F T")
+                print("# n = " + str(n))
+                print("# RMS = " + str(RMS))       
+
+                # in test mode: build an image as a visual representation 
+                # of the DFT coefficients
+                dft_image_round_re = np.zeros((2*n + 1, 2*n + 1))
+                dft_image_round_im = np.zeros((2*n + 1, 2*n + 1))
+
+                dft_image_round_re[   :n,   :n] = DFT_rounded[-n: ,-n: ,0]
+                dft_image_round_re[n+1: ,   :n] = DFT_rounded[  :n,-n: ,0]
+                dft_image_round_re[   :n,n+1: ] = DFT_rounded[-n: ,  :n,0]
+                dft_image_round_re[n+1: ,n+1: ] = DFT_rounded[  :n,  :n,0]
+
+                dft_image_round_im[   :n,   :n] = DFT_rounded[-n: ,-n: ,1]
+                dft_image_round_im[n+1: ,   :n] = DFT_rounded[  :n,-n: ,1]
+                dft_image_round_im[   :n,n+1: ] = DFT_rounded[-n: ,  :n,1]
+                dft_image_round_im[n+1: ,n+1: ] = DFT_rounded[  :n,  :n,1]
+
+                dft_image_round_re_log = np.log10(np.abs(dft_image_re))
+                dft_image_round_im_log = np.log10(np.abs(dft_image_im))
+
+                cv.imwrite("./debug/test_build_DFT_image_re.jpg", dft_image_re * (256 / np.max(dft_image_re)))
+                cv.imwrite("./debug/test_build_DFT_image_im.jpg", dft_image_im * (256 / np.max(dft_image_im)))
+                cv.imwrite("./debug/test_build_DFT_image_re_log.jpg", dft_image_re_log * (256 / np.max(dft_image_re_log)))
+                cv.imwrite("./debug/test_build_DFT_image_im_log.jpg", dft_image_im_log * (256 / np.max(dft_image_im_log)))
+            
+            address = DFT_mapping(n)
+            DFT_flat = np.zeros(n * n * 8).astype(int)
+            k_df = 0
+            for [i,j] in address:
                 i_s, j_s, k_s = [i,x-i-1], [j,y-j-1], [0, 1]
                 for i1 in i_s:
                     for j1 in j_s:
                         for k1 in k_s:
-                            S = S + c_int(DFT[i1,j1,k1])
-                            if len(S) > 67:
-                                print(S,                                          file = file)
-                                S = ""
-        print(S + "//",                                                           file = file)
-        if os.path.exists(FS.cwd + "/Message Template.txt"):
-            for m_t in message_template_outro.splitlines(): print(m_t, file = file)
-    os.startfile(message_file_path)
+                            DFT_flat[k_df] = int(coeff_round(DFT[i1,j1,k1]))
+                            if test_mode: print(str(DFT[i1,j1,k1]) + " " + str(coeff_unround(coeff_round(DFT[i1,j1,k1]))))
+                            k_df += 1
+            if test_mode: 
+                with open("./debug/DFT_flat_write.txt",'w') as file:
+                    for f in DFT_flat:
+                        print(f, file = file)
 
-#####################################################################
-# m e s s a g e   - >   i m a g e
-#####################################################################
-elif FS.ext.lower() == ".txt" or FS.ext.lower() == ".eml":
-    with open(orig_path,'r') as file: msg = file.read()
-    m = msg_read(msg)
-    plot_idft = cv.idft(m.DFT)
+            # k_df below is used to mark the last written coefficent
+            line_limit = 62 ** 68
+            k_df = 0
+            msg_bulk = ""
+            for k in range(1,len(DFT_flat)):
+                if int(max(DFT_flat[k_df:k]) + 1) ** (k - k_df) > line_limit:
+                    if test_mode:
+                        print("coefficients " + str(k_df) + " through " + str(k-2))
+                        print(DFT_flat[k_df:k-1])
+                    # start a new line with the character for the max coefficient
+                    # on the line
+                    if msg_bulk != "": msg_bulk = msg_bulk + "\n"
+                    msg_bulk += msg_nextline_build(DFT_flat[k_df:k-1])
+                    
+                    k_df = k - 1
 
-    FS.update(m.subject)
-    c = config_read(FS.config)
-    scale = scale_build_RGB(c.scale)
+            k = len(DFT_flat)
+            if test_mode:
+                print("coefficients " + str(k_df) + " through " + str(k-1))
+                print(DFT_flat[k_df:k])
+            if msg_bulk != "": msg_bulk = msg_bulk + "\n"
+            msg_bulk += msg_nextline_build(DFT_flat[k_df:k]) 
 
-    # normalize the array and store as the output image
-    plot_out = cv.magnitude(plot_idft[:,:,0], plot_idft[:,:,1])
-    plot_out = np.array(m.max * (plot_out - np.min(plot_out)) / (np.max(plot_out) - np.min(plot_out))).astype(int)
+            if len(msg_bulk.splitlines()[-1]) > 67: msg_bulk += "\n"
+            msg_bulk += "//"
 
-    image = image_restore(plot_out,m.subject,scale)
+            # save the values of the DFT to a file
+            message_file_path = FS.orig_folder + "/" + FS.subject + ".txt"
 
-    cv.imwrite(FS.orig_folder + m.subject + "_out.jpg",image)
+            with open(message_file_path,'w') as file:
+                if os.path.exists(FS.cwd + "/templates/Message Template.txt"):
+                    with open("./templates/Message Template.txt", "r") as file_r: message_template = file_r.read()
+                    message_template_intro = message_template.split("<message>\n")[0]
+                    message_template_outro = message_template.split("<message>\n")[1]
+                    for m_t in message_template_intro.splitlines(): print(m_t, file = file)
+                print(str(x) + "/" + 
+                    str(y) + "/" + 
+                    str(n) + "/" + 
+                    str(int(np.max(plot))) + "/" + 
+                    dtg + "/" +
+                    FS.subject + "/A1R1G2U3S5/",                                 file = file)
+                print(msg_bulk,                                                file = file)
+                if os.path.exists(FS.cwd + "./templates//Message Template.txt"):
+                    for m_t in message_template_outro.splitlines(): print(m_t, file = file)
+            os.startfile(message_file_path)
 
-    os.startfile(FS.orig_folder + m.subject + "_out.jpg")
+    #####################################################################
+    # m e s s a g e   - >   i m a g e
+    #####################################################################
+    elif FS.ext.lower() == ".txt" or FS.ext.lower() == ".eml":
+        with open(orig_path,'r') as file: msg = file.read()
+        m = msg_read(msg)
+        plot_idft = cv.idft(m.DFT)
+
+        FS.update(m.subject)
+        c = config_read(FS.config)
+        scale = scale_build_RGB(c.scale)
+
+        # normalize the array and store as the output image
+        plot_out = cv.magnitude(plot_idft[:,:,0], plot_idft[:,:,1])
+        plot_out = np.array(m.max * (plot_out - np.min(plot_out)) / (np.max(plot_out) - np.min(plot_out))).astype(int)
+
+        image = image_restore(plot_out,m.subject,scale)
+
+        cv.imwrite(FS.orig_folder + m.subject + "_out.jpg",image)
+
+        os.startfile(FS.orig_folder + m.subject + "_out.jpg")
