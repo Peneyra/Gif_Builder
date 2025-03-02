@@ -96,7 +96,7 @@ class msg_read:
                     k_mr += 1
         k_df = 0
         if test_mode:
-            with open("./DFT_flat_read.txt",'w') as file:
+            with open("./debug/DFT_flat_read.txt",'w') as file:
                 for f in DFT_flat:
                     if test_mode: print(f, file = file)                       
         for [i,j] in address:
@@ -240,12 +240,12 @@ def plot_smooth(arr,repeat):
 
         arr_add = np.divide(arr_add, arr_cnt, out = np.zeros_like(arr_add), where=arr_cnt!=0)
 
-        if test_mode: cv.imwrite('./test_add_' + str(r) + '.jpg', 10 * arr_add)
-        if test_mode: cv.imwrite('./test_cnt_' + str(r) + '.jpg', 10 * arr_cnt)
+        if test_mode: cv.imwrite('./debug/test_add_' + str(r) + '.jpg', 10 * arr_add)
+        if test_mode: cv.imwrite('./debug/test_cnt_' + str(r) + '.jpg', 10 * arr_cnt)
 
         arr_out = arr_out + np.array(np.multiply(arr_add,arr_out == 0)).astype(np.uint8)
 
-        if test_mode: cv.imwrite('./test_' + str(r) + '.jpg', 10 * arr_out)
+        if test_mode: cv.imwrite('./debug/test_' + str(r) + '.jpg', 10 * arr_out)
     return arr_out
 
 # function to smooth out the colors and crop out the borders
@@ -272,12 +272,12 @@ def plot_round(arr):
         arr_cnt = arr_cnt * 6
         arr_add = np.divide(arr_add, arr_cnt, out = np.zeros_like(arr_add), where=arr_cnt!=0)
 
-        if test_mode: cv.imwrite('./test_add_' + str(r) + '.jpg', 10 * arr_add)
-        if test_mode: cv.imwrite('./test_cnt_' + str(r) + '.jpg', 10 * arr_cnt)
+        if test_mode: cv.imwrite('./debug/test_add_' + str(r) + '.jpg', 10 * arr_add)
+        if test_mode: cv.imwrite('./debug/test_cnt_' + str(r) + '.jpg', 10 * arr_cnt)
 
         arr_out = arr_out + np.array(np.multiply(arr_add,arr_out == 0)).astype(np.uint8)
 
-        if test_mode: cv.imwrite('./test_' + str(r) + '.jpg', 10 * arr_out)
+        if test_mode: cv.imwrite('./debug/test_' + str(r) + '.jpg', 10 * arr_out)
     return arr_out
 
 def plot_mirror_edge(arr):
@@ -310,7 +310,7 @@ def image_restore(plot,subject,scale):
     image = np.zeros((x,y,3)).astype(int)
     empty = [0, 0, 124]
     var = 50
-    if test_mode: cv.imwrite("./test_restore_plot.jpg", plot * (256 / np.max(plot)))
+    if test_mode: cv.imwrite("./debug/test_restore_plot.jpg", plot * (256 / np.max(plot)))
 
     image_template = cv.imread('./templates/' + subject + '/' + subject + "_template.jpg")
 
@@ -323,11 +323,11 @@ def image_restore(plot,subject,scale):
         for j in range(3):
             im[:,:,j] = np.array(plot == i).astype(int) * scale[i, j]
         image = image + im
-        if test_mode: cv.imwrite("./test_restore_" + str(i) + ".jpg",image)
+        if test_mode: cv.imwrite("./debug/test_restore_" + str(i) + ".jpg",image)
 
     for i in range(3): 
         image[:,:,i] = np.multiply(np.array(plot_bool).astype(int),image[:,:,i]) + np.multiply(np.array(~plot_bool).astype(int), image_template[:,:,i])
-        if test_mode: cv.imwrite("./test_restore_f" + str(i) + ".jpg",image)
+        if test_mode: cv.imwrite("./debug/test_restore_f" + str(i) + ".jpg",image)
 
     # crop out a part of the image (namely the legend)
     ##################################################
@@ -337,20 +337,20 @@ def image_restore(plot,subject,scale):
     # crop the image to remove the legend
     if c.crop_y1 !=0: image[:c.crop_y1, :, :] =  image_template[:c.crop_y1, :, :].copy()
     if test_mode:
-        cv.imwrite("./test_restore_cropped1.jpg",image_template[:c.crop_y1, :, :].copy())
-        cv.imwrite("./test_restore_crop1.jpg",image)
+        cv.imwrite("./debug/test_restore_cropped1.jpg",image_template[:c.crop_y1, :, :].copy())
+        cv.imwrite("./debug/test_restore_crop1.jpg",image)
     if c.crop_y2 !=0: image[c.crop_y2:, :, :] =  image_template[c.crop_y2:, :, :].copy()
     if test_mode:
-        cv.imwrite("./test_restore_cropped2.jpg",image_template[c.crop_y2:, :, :].copy())
-        cv.imwrite("./test_restore_crop2.jpg",image)
+        cv.imwrite("./debug/test_restore_cropped2.jpg",image_template[c.crop_y2:, :, :].copy())
+        cv.imwrite("./debug/test_restore_crop2.jpg",image)
     if c.crop_x1 !=0: image[:, :c.crop_x1, :] =  image_template[:, :c.crop_x1, :].copy()
     if test_mode:
-        cv.imwrite("./test_restore_cropped3.jpg",image_template[:, :c.crop_x1, :].copy())
-        cv.imwrite("./test_restore_crop3.jpg",image)
+        cv.imwrite("./debug/test_restore_cropped3.jpg",image_template[:, :c.crop_x1, :].copy())
+        cv.imwrite("./debug/test_restore_crop3.jpg",image)
     if c.crop_x2 !=0: image[:, c.crop_x2:, :] =  image_template[:, c.crop_x2:, :].copy()
     if test_mode:
-        cv.imwrite("./test_restore_cropped4.jpg",image_template[:, c.crop_x2:, :].copy())
-        cv.imwrite("./test_restore_crop4.jpg",image)
+        cv.imwrite("./debug/test_restore_cropped4.jpg",image_template[:, c.crop_x2:, :].copy())
+        cv.imwrite("./debug/test_restore_crop4.jpg",image)
 
     image = cv.putText(image, m.subject + " - " + m.dtg, (c.crop_x1, c.crop_y2 + 5), cv.FONT_HERSHEY_SIMPLEX,
                        .5, (0,0,0), 1, cv.LINE_AA, False)
@@ -960,11 +960,11 @@ if not orig_path == "":
             # turn the image into a scalar plot and then smooth it over
             plot = plot_scale(image.copy())
             plot = np.array(plot).astype(float)
-            if test_mode: cv.imwrite("./test_build_plot_raw.jpg", plot * (256 / np.max(plot)))
+            if test_mode: cv.imwrite("./debug/test_build_plot_raw.jpg", plot * (256 / np.max(plot)))
             plot = plot_smooth(plot,20)
             plot = plot_mirror_edge(plot)
             plot = plot_round(plot)
-            if test_mode: cv.imwrite("./test_build_plot_smooth.jpg", plot * (256 / np.max(plot)))
+            if test_mode: cv.imwrite("./debug/test_build_plot_smooth.jpg", plot * (256 / np.max(plot)))
 
             ################################################################
             # r u n    D F T 
@@ -1006,10 +1006,10 @@ if not orig_path == "":
                 dft_image_re_log = np.log10(np.abs(dft_image_re))
                 dft_image_im_log = np.log10(np.abs(dft_image_im))
 
-                cv.imwrite("./test_build_DFT_image_re.jpg", dft_image_re * (256 / np.max(dft_image_re)))
-                cv.imwrite("./test_build_DFT_image_im.jpg", dft_image_im * (256 / np.max(dft_image_im)))
-                cv.imwrite("./test_build_DFT_image_re_log.jpg", dft_image_re_log * (256 / np.max(dft_image_re_log)))
-                cv.imwrite("./test_build_DFT_image_im_log.jpg", dft_image_im_log * (256 / np.max(dft_image_im_log)))
+                cv.imwrite("./debug/test_build_DFT_image_re.jpg", dft_image_re * (256 / np.max(dft_image_re)))
+                cv.imwrite("./debug/test_build_DFT_image_im.jpg", dft_image_im * (256 / np.max(dft_image_im)))
+                cv.imwrite("./debug/test_build_DFT_image_re_log.jpg", dft_image_re_log * (256 / np.max(dft_image_re_log)))
+                cv.imwrite("./debug/test_build_DFT_image_im_log.jpg", dft_image_im_log * (256 / np.max(dft_image_im_log)))
             
                 # write the full DFT
                 DFT_0 = cv.dft(np.float32(plot),flags=cv.DFT_COMPLEX_OUTPUT)
@@ -1017,8 +1017,8 @@ if not orig_path == "":
                 # dft_image_full_im = np.roll(np.roll(np.log(DFT[:,:,1]), len(DFT)//2, axis = 0), len(DFT[0])//2, axis = 1)
                 dft_image_full_re = np.roll(np.roll(np.log10(np.abs(DFT_0[:,:,0])), len(DFT_0)//2, axis = 0), len(DFT_0[0])//2, axis = 1)
                 dft_image_full_im = np.roll(np.roll(np.log10(np.abs(DFT_0[:,:,1])), len(DFT_0)//2, axis = 0), len(DFT_0[0])//2, axis = 1)
-                cv.imwrite("./test_build_DFT_image_full_re_log.jpg", dft_image_full_re * (256 / np.max(dft_image_full_re)))
-                cv.imwrite("./test_build_DFT_image_full_im_log.jpg", dft_image_full_im * (256 / np.max(dft_image_full_im)))
+                cv.imwrite("./debug/test_build_DFT_image_full_re_log.jpg", dft_image_full_re * (256 / np.max(dft_image_full_re)))
+                cv.imwrite("./debug/test_build_DFT_image_full_im_log.jpg", dft_image_full_im * (256 / np.max(dft_image_full_im)))
 
                 # in test mode: calculate the RMS due to curtailment
                 IDFT = cv.idft(DFT)
@@ -1026,7 +1026,7 @@ if not orig_path == "":
                 IDFT = IDFT * (np.max(plot) / np.max(IDFT))
                 IDFT = np.round(IDFT).astype(int)
                 IDFT = np.multiply(IDFT, plot >= 1)
-                cv.imwrite("./test_build_DFT_small.jpg", IDFT * (256 / np.max(IDFT)))
+                cv.imwrite("./debug/test_build_DFT_small.jpg", IDFT * (256 / np.max(IDFT)))
                 diff = ((plot - IDFT) ** 2) / len(plot.flatten())
                 RMS = np.sqrt(np.sum(diff))
                 print("##################################")
@@ -1073,17 +1073,17 @@ if not orig_path == "":
                 dft_image_rounded_re_log = np.log10(np.abs(dft_image_rounded_re))
                 dft_image_rounded_im_log = np.log10(np.abs(dft_image_rounded_im))
 
-                cv.imwrite("./test_build_DFT_image_rounded_re.jpg", dft_image_rounded_re * (256 / np.max(dft_image_rounded_re)))
-                cv.imwrite("./test_build_DFT_image_rounded_im.jpg", dft_image_rounded_im * (256 / np.max(dft_image_rounded_im)))
-                cv.imwrite("./test_build_DFT_image_rounded_re_log.jpg", dft_image_rounded_re_log * (256 / np.max(dft_image_rounded_re_log)))
-                cv.imwrite("./test_build_DFT_image_rounded_im_log.jpg", dft_image_rounded_im_log * (256 / np.max(dft_image_rounded_im_log)))
+                cv.imwrite("./debug/test_build_DFT_image_rounded_re.jpg", dft_image_rounded_re * (256 / np.max(dft_image_rounded_re)))
+                cv.imwrite("./debug/test_build_DFT_image_rounded_im.jpg", dft_image_rounded_im * (256 / np.max(dft_image_rounded_im)))
+                cv.imwrite("./debug/test_build_DFT_image_rounded_re_log.jpg", dft_image_rounded_re_log * (256 / np.max(dft_image_rounded_re_log)))
+                cv.imwrite("./debug/test_build_DFT_image_rounded_im_log.jpg", dft_image_rounded_im_log * (256 / np.max(dft_image_rounded_im_log)))
 
                 IDFT = cv.idft(DFT_rounded)
                 IDFT = cv.magnitude(IDFT[:,:,0],IDFT[:,:,1])
                 IDFT = IDFT * (np.max(plot) / np.max(IDFT))
                 IDFT = np.round(IDFT).astype(int)
                 IDFT = np.multiply(IDFT, plot >= 1)
-                cv.imwrite("./test_build_DFT_rounded_small.jpg", IDFT * (256 / np.max(IDFT)))
+                cv.imwrite("./debug/test_build_DFT_rounded_small.jpg", IDFT * (256 / np.max(IDFT)))
                 diff = ((plot - IDFT) ** 2) / len(plot.flatten())
                 RMS = np.sqrt(np.sum(diff))
                 print("##################################")
@@ -1109,10 +1109,10 @@ if not orig_path == "":
                 dft_image_round_re_log = np.log10(np.abs(dft_image_re))
                 dft_image_round_im_log = np.log10(np.abs(dft_image_im))
 
-                cv.imwrite("./test_build_DFT_image_re.jpg", dft_image_re * (256 / np.max(dft_image_re)))
-                cv.imwrite("./test_build_DFT_image_im.jpg", dft_image_im * (256 / np.max(dft_image_im)))
-                cv.imwrite("./test_build_DFT_image_re_log.jpg", dft_image_re_log * (256 / np.max(dft_image_re_log)))
-                cv.imwrite("./test_build_DFT_image_im_log.jpg", dft_image_im_log * (256 / np.max(dft_image_im_log)))
+                cv.imwrite("./debug/test_build_DFT_image_re.jpg", dft_image_re * (256 / np.max(dft_image_re)))
+                cv.imwrite("./debug/test_build_DFT_image_im.jpg", dft_image_im * (256 / np.max(dft_image_im)))
+                cv.imwrite("./debug/test_build_DFT_image_re_log.jpg", dft_image_re_log * (256 / np.max(dft_image_re_log)))
+                cv.imwrite("./debug/test_build_DFT_image_im_log.jpg", dft_image_im_log * (256 / np.max(dft_image_im_log)))
             
             address = DFT_mapping(n)
             DFT_flat = np.zeros(n * n * 8).astype(int)
@@ -1126,7 +1126,7 @@ if not orig_path == "":
                             if test_mode: print(str(DFT[i1,j1,k1]) + " " + str(coeff_unround(coeff_round(DFT[i1,j1,k1]))))
                             k_df += 1
             if test_mode: 
-                with open("./DFT_flat_write.txt",'w') as file:
+                with open("./debug/DFT_flat_write.txt",'w') as file:
                     for f in DFT_flat:
                         print(f, file = file)
 
