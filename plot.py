@@ -3,7 +3,9 @@ import cv2 as cv
 import imageio
 
 # The purpose of this file is to define functions to create and 
-# manipulate a plot of scalars
+# manipulate a plot of scalars from an image file, particularly
+# an image which uses a color scale to depict information on a
+# map.
 
 def build_int(raw):
     # input: np array (x,3) - slice of an image
