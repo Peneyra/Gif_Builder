@@ -5,22 +5,22 @@ import imageio
 # The purpose of this file is to define functions to create and 
 # manipulate a plot of scalars
 
-def build_int(raw):
-    # input: np array (x,3) - slice of an image
+def build_scale(raw):
+    # input: np array (x,3)  - slice of an image
     # output: np array (x,3) - return an array of BGR integers
-    scale_out = []
+    out = []
     r_last = np.zeros(3).astype(np.uint8)
     for r in raw:
         # filter out black and white and check RGB not same as last
         if (not all(r > 250)
                 and not all(r < 5)
                 and sum(np.abs(np.subtract(r_last,r))) >= 5):
-            scale_out.append(r)
+            out.append(r)
             r_last = r.copy()
-    return scale_out
+    return out
 def tblr(image):
     # input: np array (x,y,3) - image with a black/white border
-    # output: integers (4) - top, bottom, left, right of the colorful area
+    # output: integers (4)    - top, bottom, left, right of the colorful area
     def bound(mask_bounds):
         begin, end = len(mask_bounds[:,0]), 0
         found = False
@@ -49,8 +49,8 @@ def tblr(image):
     return [t,b,l,r]
 def generate(image, scale):
     # input: np array (x,y,3) - image with RGB values
-    # input: np array (x,3) - scale of RGB values in order of magnitude
-    # output: np array (x,y) - grayscale plot with values centered at zero
+    # input: np array (x,3)   - scale of RGB values in order of magnitude
+    # output: np array (x,y)  - grayscale plot with values centered at zero
     out = np.zeros_like(image[:,:,0].astype(int))
     for i in range(len(scale)):
         mask = out == 0
@@ -61,7 +61,7 @@ def generate(image, scale):
     return out
 def smooth(plt, repeat):
     # input: np array (x,y) - grayscale plot
-    # input: int - number of times to repeat the smoothing function
+    # input: int            - number of times to repeat the smoothing fn
     for r in range(repeat):
         tmp = np.pad(
             plt[1:plt.shape[0]-1, 1:plt.shape[1] - 1],
@@ -82,3 +82,28 @@ def smooth(plt, repeat):
         cv.imwrite('./debug/test_add_' + str(r) + '.jpg', 10 * add)
         cv.imwrite('./debug/test_cnt_' + str(r) + '.jpg', 10 * cnt)
     return out
+def restore(plt, template, scale, dtg)
+    # input: np array (x,y)   - grayscale plot
+    # input: string           - template name
+    # input: np array (x,3)   - scale of RGB values in order of magnitude
+    # input: string           - date, time, group
+    # output: np array (x,y,3)- output image
+    out = cv.imread(
+        './templates/' 
+        + template 
+        + '/' 
+        + template 
+        + '_template.jpg'
+    )
+    x, y = plt.shape
+    t, b, l, r = tblr(out)
+    mt = [0, 0, 124]
+    var = 25
+    mask = np.zeros_like(out[:,:,0]).astype(int)
+    for i in range(3):
+        mask += np.array(abs(out[:,:,i].astype(int) - mt[i]) < var).astype(int)
+    mask = np.array(mask == 3).astype(int)
+    out_map = np.zeros_like(plt).astype(int)
+    for i in range(len(scale))[1:]:
+        for j in range(3):
+            out_map[t:b, l:r, j] = np.array(plt == i).astype(int) * scale[i, j]
