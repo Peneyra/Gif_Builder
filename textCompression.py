@@ -82,41 +82,6 @@ def change_basis(num,b1,b2):
         dec = (dec - (dec % b2)) // b2
     return out[::-1]
 
-def msgdata_read(msg):
-    # input: string - VLF ARGUS message
-    # output: float array - DFT
-    header, footer = True, False
-    chars = char_list()
-    for m in msg.splitlines():
-        if header:
-            if 'A1R1G2U3S5' in m:
-                header = False
-                S = m.split('/')
-                x, y, n, max_coeff = [int(k) for k in S[0:4]]
-                dtg = S[4]
-                template = S[5]
-                dft = np.zeros((x,y,2))
-                dft_address = dft_mapping(n)
-                dft_flat = []
-        elif not footer:
-            max_line = chars.find(m[0])
-            line_int = []
-            for a in m[1:]:
-                if a == '/': footer = True
-                else:        line_int.append(chars.find(a))
-            line_int = change_basis(line_int,len(chars),max_line)
-            for li in line_int: dft_flat.append(li)
-            with open("./debug/DFT_flat_read.txt",'w') as file: 
-                print(dft_flat, file = file)
-    k = 0
-    for [i,j] in dft_address:
-        i_s, j_s, k_s = [i,x-i-1], [j,y-j-1], [0, 1]
-        for i1 in i_s:
-            for j1 in j_s:
-                for k1 in k_s:
-                    dft[i1,j1,k1] = coeff_unround(dft_flat[k])
-                    k += 1
-    return dft, template, dtg
 def msgdata_write(dft,n):
     # input: float array - DFT
     # input: dict - configuration file
@@ -134,20 +99,64 @@ def msgdata_write(dft,n):
                 for k3 in k2:
                     dft_flat.append(coeff_round(dft[i3,j3,k3]))
     beg = 0
-    end = 1
-    while beg <= len(dft_flat):
-        m_d = max(dft_flat[beg:end])
-        if 67 < len(change_basis(dft_flat[beg:end],m_d,len(chars))):
-            out += max(dft_flat[beg:end-1])
-            for cb in change_basis(dft_flat[beg:end-1],m_d,len(chars)):
-                out += chars.find(cb)
-            out += '\n'
-            beg = end-1
+    end = 2
+    dump = False
+    line_cap = '\n'
+    while beg < len(dft_flat):
         if end >= len(dft_flat):
-            out += chars.find(m_d)
-            for cb in change_basis(dft_flat[beg:end],m_d,len(chars)):
-                out += chars.find(cb)
-            out += '/' + '\n'
+            line_cap = '/\n'
+            dump = True
+        elif 67 < len(change_basis(dft_flat[beg:end],
+                                   max(dft_flat[beg:end]),
+                                   len(chars))
+                                   ):
+            end -= 1
+            dump = True
+        if dump:
+            m_d = max(dft_flat[beg:end])
+            print(dft_flat[beg:end])
+            out += str(chars[m_d + 1])
+            for cb in change_basis(dft_flat[beg:end],m_d+1,len(chars)):
+                out += str(chars[cb])
+            out += line_cap
             beg = end
+            end += 1
+            dump = False
         end += 1
     return out
+def msgdata_read(msg):
+    # input: string - VLF ARGUS message
+    # output: float array - DFT
+    header, footer = True, False
+    chars = char_list()
+    for m in msg.splitlines():
+        if header:
+            if 'A1R1G2U3S5' in m:
+                header = False
+                S = m.split('/')
+                x, y, n, max_coeff = [int(k) for k in S[0:4]]
+                dtg = S[4]
+                template = S[5]
+                dft = np.zeros((x,y,2))
+                dft_address = dft_mapping(n)
+                dft_flat = []
+        elif not footer:
+            m_d = chars.find(m[0])
+            line_int = []
+            for a in m[1:]:
+                if a == '/': footer = True
+                else:        line_int.append(chars.find(a))
+            line_int = change_basis(line_int,len(chars),m_d)
+            print(line_int)
+            for li in line_int: dft_flat.append(li)
+            with open("./debug/DFT_flat_read.txt",'w') as file: 
+                print(dft_flat, file = file)
+    k = 0
+    for [i,j] in dft_address:
+        i_s, j_s, k_s = [i,x-i-1], [j,y-j-1], [0, 1]
+        for i1 in i_s:
+            for j1 in j_s:
+                for k1 in k_s:
+                    dft[i1,j1,k1] = coeff_unround(dft_flat[k])
+                    k += 1
+    return dft, template, dtg
