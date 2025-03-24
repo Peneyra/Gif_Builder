@@ -26,23 +26,23 @@ def dft_mapping(n):
     # 3 3 3 ...
     # This organization will assist with maximum compression of the follow 
     # on message map all the addresses in the order you want them.
-    address = [[0,0]] * (n * n)
-    k_a = 1
+    out = [[0,0],[0,1]]
     for k in range(1,n):
         j = k
         for i in range(k):
-            address[k_a] = [i, j]
-            k_a += 1
-            address[k_a] = [j, i]
-            k_a += 1
-        address[k_a] = [k, k]
-        k_a += 1
-    return address
+            out.append([i, 2 * j])
+            out.append([i, 2 * j + 1])
+            out.append([j, 2 * i])
+            out.append([j, 2 * i + 1])
+        out.append([k, 2 * k])
+        out.append([k, 2 * k + 1])
+    return out
 
 def coeff_round(x):
     # input: int - number between -1000 and 1000
     # output: int - number between 0 and len(char_list)
-    if abs(x) > 1000: return 0
+    if abs(x) > 1000: 
+        return 0
     out = 0
     m_int = 1000
     m_char = (len(char_list()) - 1) // 2
@@ -62,7 +62,7 @@ def coeff_unround(x):
     m_char = (len(char_list()) - 1) // 2
     dx = np.log10(m_int) / m_char
     offset = x % 2
-    out = 10 ** ((((x-offset)/2)+.5)*dx)
+    out = 10 ** ((((x-offset)/2)+1)*dx)
     if offset == 1: out = out * (-1)
     return out
 def change_basis(num,b1,b2):
@@ -74,12 +74,17 @@ def change_basis(num,b1,b2):
     dec = 0
     out = []
     exp = 1
+    # check for leading zeros
+    lead_zeros = 0
     for n in num[::-1]:
+        if n == 0: lead_zeros += 1
+        else: lead_zeros = 0
         dec = dec + (n * exp)
         exp = exp * b1
     while dec > 0:
         out.append(dec % b2)
         dec = (dec - (dec % b2)) // b2
+    for i in range(lead_zeros): out.append(0)    
     return out[::-1]
 
 def msgdata_write(dft,n):
@@ -92,12 +97,10 @@ def msgdata_write(dft,n):
     chars = char_list()
     x, y = dft.shape[:2]
     out = ''
-    for [i1,j1] in dft_address:
-        i2, j2, k2 = [i1,x-i1-1], [j1,y-j1-1], [0,1]
-        for i3 in i2:
-            for j3 in j2:
-                for k3 in k2:
-                    dft_flat.append(coeff_round(dft[i3,j3,k3]))
+    for [i,j] in dft_address:
+        i1 = [i,x-i-1]
+        for i2 in i1:
+            dft_flat.append(coeff_round(dft[i2,j]))
     beg = 0
     end = 2
     dump = False
@@ -137,7 +140,7 @@ def msgdata_read(msg):
                 x, y, n, max_coeff = [int(k) for k in S[0:4]]
                 dtg = S[4]
                 template = S[5]
-                dft = np.zeros((x,y,2))
+                dft = np.zeros((x,y))
                 dft_address = dft_mapping(n)
                 dft_flat = []
         elif not footer:
@@ -153,10 +156,9 @@ def msgdata_read(msg):
                 print(dft_flat, file = file)
     k = 0
     for [i,j] in dft_address:
-        i_s, j_s, k_s = [i,x-i-1], [j,y-j-1], [0, 1]
-        for i1 in i_s:
-            for j1 in j_s:
-                for k1 in k_s:
-                    dft[i1,j1,k1] = coeff_unround(dft_flat[k])
-                    k += 1
-    return dft, template, dtg
+        i1 = [i,x-i-1]
+        for i2 in i1:
+            dft[i2,j] = coeff_unround(dft_flat[k])
+            print(str(i2) + ", " + str(j) + ", " + str(dft_flat[k]))
+            k += 1
+    return dft, max_coeff, template, dtg
