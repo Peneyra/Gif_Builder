@@ -5,40 +5,56 @@ import plot
 import textCompression as tc
 
 test = 0
+
 n = 15
+padding = 25
 
 if test == 0:
     image = imageio.mimread('./examples/EUCOM.gif')
     image = [cv.cvtColor(img, cv.COLOR_RGB2BGR) for img in image][0]
+
     scale = plot.build_scale(image[65,:,:])
+
     plt = plot.gen(image, scale)
-    max_coeff = int(np.max(plt - np.min(plt)) - 1)
+    plt = np.pad(plt, pad_width = padding, mode='symmetric')
     cv.imwrite('./debug/yaml_test_plt_raw.png', (plt - np.min(plt)) * (200 / np.max(plt * 2)))
     plt = plot.smooth(plt,2)
     cv.imwrite('./debug/yaml_test_plt_smooth.png', (plt - np.min(plt)) * (200 / np.max(plt * 2)))
+    max_coeff = int(np.max(plt - np.min(plt)) - 1)
+
     dft = cv.dft(cv.resize(plt,(plt.shape[1]//1,plt.shape[0]//1)))
+    dft = dft * (1000/np.max(np.abs(dft)))
+
     dft_view = np.log(np.abs(dft))
     dft_view[dft_view < 0] = 0
     cv.imwrite('./debug/yaml_test_dft.png', dft_view * (200 / np.max(dft_view)))
-    dft = dft * (1000/np.max(np.abs(dft)))
+
     msg_data = tc.msgdata_write(dft,n)
-    None
+
     print("")
     print("")
+
     msg_data = '538/927/'+ str(n) + '/' + str(max_coeff) + '/000000ZJAN25/EUCOM/A1R1G2U3S5/\n' + msg_data
+
     dft_out, max_coeff, template, dtg = tc.msgdata_read(msg_data)
+
     dft_out_view = np.log(np.abs(dft_out))
     dft_out_view[dft_out_view < 0] = 0
     cv.imwrite('./debug/yaml_test_dft_out.png', dft_out_view * (200 / np.max(dft_out_view)))
+
     plt_out = cv.idft(dft_out)
     plt_out[plt_out < 0] = 0
     plt_out = (plt_out) * (max_coeff / np.max(plt_out))
+    plt_out = plt_out[padding:-1*padding,padding:-1*padding]
     plt_out = np.round(plt_out).astype(int)
     cv.imwrite("./debug/yaml_test_idft.png", (plt_out - np.min(plt_out)) * (200 / np.max(plt_out * 2)))
+
     print(msg_data)
     print(len(msg_data))
+
     img = plot.restore(plt_out,template,scale,dtg)
     cv.imwrite("./debug/yaml_test_img.png", img)
+    
     None
 
 if test == 1:
