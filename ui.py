@@ -6,6 +6,56 @@ from tkinter import messagebox
 from tkinter.filedialog import askopenfilename
 from PIL import ImageTk, Image
 from time import gmtime
+
+
+class File_Structure:
+    def update(self, subject):
+        self.subject = subject
+        self.template = os.getcwd() + "/templates/" + subject + "/" + subject + "_template.jpg"
+        self.config = os.getcwd() + "/templates/" + subject + "/" + subject + ".config"
+
+    # all relevant files saved as strings
+    def __init__(self, orig_fp, ext):
+        subject = orig_fp.split('/')[-1][:-4]
+        self.subject = subject
+        self.ext = ext
+        self.cwd = os.getcwd()
+        self.templates_folder = os.getcwd() + "/templates/"
+        self.template = os.getcwd() + "/templates/" + subject + "/" + subject + "_template.jpg"
+        self.config = os.getcwd() + "/templates/" + subject + "/" + subject + ".config"
+        self.orig_fp = orig_fp
+        self.orig_file = subject
+        self.orig_folder = '/'.join(orig_fp.split("/")[:-1]) + '/'
+
+
+def get_filepath(orig_fp):
+    # Verifies the file is of the correct type.  If not, pop up an error message
+    # define valid file extensions
+    ext_good = ['.gif','.jpg','.txt','.eml']
+
+    if orig_fp == "":
+        quit()
+    else:
+        for e in ext_good:
+            if orig_fp[len(orig_fp)-4:] == e:
+                out = File_Structure(orig_fp, e)
+                return out
+
+    root = Tk.Tk()
+    root.wm_withdraw()
+    messagebox.showinfo(
+        title="Wrong type of file", 
+        message="Please choose a .jpg, .gif, .txt, or .msg"
+    )
+    root.destroy()
+
+    quit()
+
+
+def allowalphanumeric(text):
+    return text == "" or text.isalnum()
+
+
 def build_template(image):
     # populate a dictionary of template images
     im_dict = {}

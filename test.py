@@ -4,10 +4,12 @@ import imageio
 import plot
 import textCompression as tc
 
+
 test = 0
 
 n = 15
 padding = 25
+
 
 if test == 0:
     image = imageio.mimread('./examples/EUCOM.gif')
@@ -54,46 +56,64 @@ if test == 0:
 
     img = plot.restore(plt_out,template,scale,dtg)
     cv.imwrite("./debug/yaml_test_img.png", img)
-    
+
     None
+
 
 if test == 1:
     x = tc.change_basis([0,0,0,3,0],3,10)
     print(x)
 
+    None
+
+
 if test == 2:
     with open('./examples/EUCOM.txt','r') as file: msg = file.read()
     x, template, dtg = tc.msgdata_read(msg)
+
     None
+
 
 if test == 3:
     image = imageio.mimread('./examples/EUCOM.gif')
     image = [cv.cvtColor(img, cv.COLOR_RGB2BGR) for img in image][0]
+
     scale = plot.build_scale(image[65,:,:])
+
     plt = plot.gen(image, scale)
-    max_coeff = int(np.max(plt - np.min(plt)) - 1)
     cv.imwrite('./debug/yaml_test_plt_raw.png', (plt - np.min(plt)) * (200 / np.max(plt * 2)))
     plt = plot.smooth(plt,2)
     cv.imwrite('./debug/yaml_test_plt_smooth.png', (plt - np.min(plt)) * (200 / np.max(plt * 2)))
     plt -= np.min(plt)
+
+    max_coeff = int(np.max(plt - np.min(plt)) - 1)
     x,y = plt.shape
+
     shrink = 8
     plt = cv.resize(plt,(y//shrink,x//shrink))
     dft = cv.dft(plt)
     k = 10
+
     for i in range(k-10,k):
         dft_temp = dft.copy()
+
         dx = int(dft.shape[0] * (k - i)/(2*k))
         print(dx)
+
         dft_temp[:,2*dx:] = 0
         dft_temp[dx:dft.shape[0]-dx,:] = 0
+
         plt_out = cv.idft(dft_temp)
         plt_out[plt_out < 0] = 0
         plt_out = (plt_out) * (max_coeff / np.max(plt_out))
         plt_out = cv.resize(plt_out,(y,x))
         plt_out = plt_out.astype(int)
+
         dft_temp = np.log(dft_temp)
         dft_temp[dft < 0] = 0
         cv.imwrite('./debug/yaml_test_dft_out.png', dft_temp * (200 / np.max(dft_temp)))
         cv.imwrite("./debug/yaml_test_idft.png", (plt_out - np.min(plt_out)) * (200 / np.max(plt_out * 2)))
+
     plt_out = np.round(plt_out).astype(int)
+
+    None
