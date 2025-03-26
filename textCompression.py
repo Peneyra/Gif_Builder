@@ -1,3 +1,4 @@
+import os
 import numpy as np
 
 def char_list():
@@ -109,6 +110,31 @@ def change_basis(num,b1,b2):
     for i in range(lead_zeros): out.append(0)    
 
     return out[::-1]
+
+
+def msgcontent_write(fp):
+    # input: fp   - file structure with msg_template defined
+    # output: str - message intro
+    # output: str - message outro
+    # if the message doesn't already exist, load a generic file to read
+    if not os.path.exists(fp.msg_template):
+        with open(fp.msg_template,'w') as file:
+            print("R XXXXXXZ MMM YY", file)
+            print("FM COMSUBPAC PEARL HARBOR HI", file)
+            print("TO SSBN PAC", file)
+            print("BT", file)
+            print("UNCLAS", file)
+            print("SUBJ/VLF WEATHER GIF//", file)
+            print("RMKS/REACH OUT TO ISIC FOR INSTRUCTIONS ON HOW TO USE THIS "
+                  "MESSAGE.", file)
+            print("<message>", file)
+            print("BT", file)
+            print("#0001", file)
+            print("NNNN", file)
+
+    with open(fp.msg_template,'r') as file_r: out = file_r.read()
+
+    return out.split("<message>\n")[0], out.split("<message>\n")[1]
 
 
 def msgdata_write(dft,n):

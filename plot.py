@@ -20,9 +20,9 @@ def build_scale(raw):
                 and not all(r < 5)
                 and np.linalg.norm(r-r_last) >= 5):
             if bw_count > 10: 
-                out_temp = r.copy()
+                out_temp = [[int(r[0]), int(r[1]), int(r[2])]]
             else: 
-                out_temp = np.vstack((out_temp,r))
+                out_temp.append([int(r[0]), int(r[1]), int(r[2])])
 
             if len(out_temp) > len(out): 
                 out = out_temp.copy()
@@ -43,10 +43,10 @@ def lrtb(image):
         found = False
         temp = 0
         for be in range(len(mask_bounds[0,:])):
-            if sum(mask_bounds[:,be]) > 0 and not found:
+            if np.sum(mask_bounds[:,be]) > 0 and not found:
                 found = True
                 temp = be
-            elif sum(mask_bounds[:,be]) == 0 and found:
+            elif np.sum(mask_bounds[:,be]) == 0 and found:
                 found = False
                 if be - temp > end - begin:
                     end = be
@@ -133,6 +133,17 @@ def smooth(plt, repeat):
     out = out - edge_mean(out)
 
     return out
+
+
+def condition(plt,padding):
+    # input: np array (x,y)              - grayscale plot
+    # output: np array (x+2*pad,y+2*pad) - grayscale plot
+    plt = np.pad(plt, pad_width = padding, mode='symmetric')
+    cv.imwrite('./debug/yaml_test_plt_raw.png', (plt - np.min(plt)) * (200 / np.max(plt * 2)))
+    plt = smooth(plt,2)
+    cv.imwrite('./debug/yaml_test_plt_smooth.png', (plt - np.min(plt)) * (200 / np.max(plt * 2)))
+
+    return plt
 
 
 def restore(plt, template, scale, dtg):

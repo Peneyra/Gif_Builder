@@ -6,6 +6,7 @@ import ui
 import os
 import imageio
 import cv2 as cv
+import numpy as np
 from tkinter.filedialog import askopenfilename
 
 # The goal for this progam is to:
@@ -20,21 +21,63 @@ from tkinter.filedialog import askopenfilename
 # 9. Overlay a standard image template over the top of the scalar array
 
 
-
 # define constants
 n = 15
 padding = 25
+dft_norm = 1000
 
-# open a file and save the filepath info
+# Open a file and save the filepath info
+# Creates a templates folder if one doesn't already exist
 fp = ui.get_filepath(askopenfilename())
 
-if fp.ext.lower() == ".gif":
-    gif = imageio.mimread(fp.orig_fp)
-    image = [cv.cvtColor(img, cv.COLOR_RGB2BGR) for img in gif][0]
-    image2text(image)
-if fp.ext.lower() == ".jpg":
-    image = cv.imread(fp.orig_fp)
-    image2text(image)
+if fp.ext.lower() == '.gif' or fp.ext.lower() == '.jpg':
+    # if it is a gif, only take the first image
+    if fp.ext.lower() == '.gif': gif = imageio.mimread(fp.orig_fp)[0]
+    elif fp.ext.lower() == '.jpg': gif = imageio.mimread(fp.orig_fp)
+
+    # account for imageio = RGB, OpenCV = BGR
+    image = np.array([cv.cvtColor(img, cv.COLOR_RGB2BGR) for img in gif]).astype(np.uint8)
+
+    # Open the UI to choose/build a template
+    # template, dtg = ui.choose_template(image, fp)
+    template, dtg = 'EUCOM', '010000ZJAN2025'
+
+    # Save the contents of the config file to c
+    c = bc.config_get(fp)
+
+    # Build a scalar plot off the image and condition it
+    plt = plot.gen(image, c['scale'])
+    plt = plot.condition(plt, padding)
+    
+    # Save the max_coefficient for normalizing the output
+    max_coeff = int(np.max(plt - np.min(plt)) - 1)
+
+    # Build a DFT matrix of the plot and normalize it for
+    # writing into the messaage
+    dft = cv.dft(plt)
+    dft = dft * (dft_norm/np.max(np.abs(dft)))
+
+    # Write the DFT coefficients to a variable in the final form we want
+    msg_data = tc.msgdata_write(dft,n)
+
+    # Write the framework for the message
+    msg_intro, msg_outro = tc.msgcontent_write(fp)
+
+    with open(fp.out_fp,'w') as file:
+        for m in msg_intro.splitlines(): print(m, file)
+        print(
+            str(dft.shape[0]) + '/'
+            + str(dft.shape[1]) + '/'
+            + str(n) + '/'
+            + str(max_coeff) + '/'
+            + dtg + '/'
+            + fp.subject + '/'
+            + 'A1R1G2U3S5/', file
+        )
+        for m in msg_outro.splitlines(): print(m, file)
+    
+    os.startfile(fp.out_fp)
+
 
 
 
@@ -45,15 +88,6 @@ if fp.ext.lower() == ".jpg":
 
 
 if not fp.orig_fp == "":
-
-    #####################################################################
-    # i m a g e   - >   m e s s a g e
-    #####################################################################
-    if FS.ext.lower() == ".gif":
-        gif = imageio.mimread(orig_path)
-        image = [cv.cvtColor(img, cv.COLOR_RGB2BGR) for img in gif][0]
-    if FS.ext.lower() == ".jpg":
-        image = cv.imread(orig_path)
 
     #####################################################################
     # i m a g e   - >   m e s s a g e

@@ -3,29 +3,10 @@ import cv2 as cv
 import os
 import tkinter as Tk
 from tkinter import messagebox
-from tkinter.filedialog import askopenfilename
 from PIL import ImageTk, Image
 from time import gmtime
 
-
-class File_Structure:
-    def update(self, subject):
-        self.subject = subject
-        self.template = os.getcwd() + "/templates/" + subject + "/" + subject + "_template.jpg"
-        self.config = os.getcwd() + "/templates/" + subject + "/" + subject + ".config"
-
-    # all relevant files saved as strings
-    def __init__(self, orig_fp, ext):
-        subject = orig_fp.split('/')[-1][:-4]
-        self.subject = subject
-        self.ext = ext
-        self.cwd = os.getcwd()
-        self.templates_folder = os.getcwd() + "/templates/"
-        self.template = os.getcwd() + "/templates/" + subject + "/" + subject + "_template.jpg"
-        self.config = os.getcwd() + "/templates/" + subject + "/" + subject + ".config"
-        self.orig_fp = orig_fp
-        self.orig_file = subject
-        self.orig_folder = '/'.join(orig_fp.split("/")[:-1]) + '/'
+import buildConfig as bc
 
 
 def get_filepath(orig_fp):
@@ -38,7 +19,7 @@ def get_filepath(orig_fp):
     else:
         for e in ext_good:
             if orig_fp[len(orig_fp)-4:] == e:
-                out = File_Structure(orig_fp, e)
+                out = bc.File_Structure(orig_fp, e)
                 return out
 
     root = Tk.Tk()

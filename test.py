@@ -1,11 +1,13 @@
 import numpy as np
 import cv2 as cv
 import imageio
+
+import ui
 import plot
 import textCompression as tc
+import buildConfig as bc
 
-
-test = 0
+test = 4
 
 n = 15
 padding = 25
@@ -59,20 +61,17 @@ if test == 0:
 
     None
 
-
 if test == 1:
     x = tc.change_basis([0,0,0,3,0],3,10)
     print(x)
 
     None
 
-
 if test == 2:
     with open('./examples/EUCOM.txt','r') as file: msg = file.read()
     x, template, dtg = tc.msgdata_read(msg)
 
     None
-
 
 if test == 3:
     image = imageio.mimread('./examples/EUCOM.gif')
@@ -115,5 +114,19 @@ if test == 3:
         cv.imwrite("./debug/yaml_test_idft.png", (plt_out - np.min(plt_out)) * (200 / np.max(plt_out * 2)))
 
     plt_out = np.round(plt_out).astype(int)
+
+    None
+
+if test == 4:
+    image = imageio.mimread('./examples/EUCOM.gif')
+    image = [cv.cvtColor(img, cv.COLOR_RGB2BGR) for img in image][0]
+
+    scale = plot.build_scale(image[65,:,:])
+
+    from tkinter.filedialog import askopenfilename
+
+    fp = ui.get_filepath(askopenfilename())
+
+    c = bc.config_update(fp,{},'scale',scale)
 
     None
