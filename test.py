@@ -118,6 +118,7 @@ if test == 3:
     None
 
 if test == 4:
+
     image = imageio.mimread('./examples/EUCOM.gif')
     image = [cv.cvtColor(img, cv.COLOR_RGB2BGR) for img in image][0]
 
@@ -129,4 +130,7 @@ if test == 4:
 
     c = bc.config_update(fp,{},'scale',scale)
 
+    None
+
+if test == 5:
     None

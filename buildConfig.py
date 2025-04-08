@@ -1,6 +1,5 @@
 import os
 import yaml
-from pathlib import Path
 
 
 def create_dir(dir):
