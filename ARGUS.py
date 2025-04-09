@@ -31,22 +31,20 @@ dft_norm = 1000
 fp = ui.get_filepath(askopenfilename())
 
 if fp.ext.lower() == '.gif' or fp.ext.lower() == '.jpg':
-    # if it is a gif, only take the first image
-    if fp.ext.lower() == '.gif': gif = imageio.mimread(fp.orig_fp)[0]
-    elif fp.ext.lower() == '.jpg': gif = imageio.mimread(fp.orig_fp)
+    image = imageio.mimread(fp.orig_fp)
 
-    # account for imageio = RGB, OpenCV = BGR
-    image = np.array([cv.cvtColor(img, cv.COLOR_RGB2BGR) for img in gif]).astype(np.uint8)
+    # if it is a gif, only take the first frame
+    if fp.ext.lower() == '.gif': image = image[0]
 
     # Open the UI to choose/build a template
     # template, dtg = ui.choose_template(image, fp)
-    template, dtg = 'EUCOM', '010000ZJAN2025'
+    ui.choose_template(image,fp)
 
     # Save the contents of the config file to c
     c = bc.config_get(fp)
 
     # Build a scalar plot off the image and condition it
-    plt = plot.gen(image, c['scale'])
+    plt = plot.gen(image, np.array(c['scale']))
     plt = plot.condition(plt, padding)
     
     # Save the max_coefficient for normalizing the output
@@ -64,17 +62,19 @@ if fp.ext.lower() == '.gif' or fp.ext.lower() == '.jpg':
     msg_intro, msg_outro = tc.msgcontent_write(fp)
 
     with open(fp.out_fp,'w') as file:
-        for m in msg_intro.splitlines(): print(m, file)
+        for m in msg_intro.splitlines(): print(m, file=file)
         print(
             str(dft.shape[0]) + '/'
             + str(dft.shape[1]) + '/'
             + str(n) + '/'
             + str(max_coeff) + '/'
-            + dtg + '/'
+            + fp.dtg + '/'
             + fp.subject + '/'
-            + 'A1R1G2U3S5/', file
+            + 'A1R1G2U3S5/', 
+            file=file
         )
-        for m in msg_outro.splitlines(): print(m, file)
+        for m in msg_data.splitlines(): print(m, file=file)
+        for m in msg_outro.splitlines(): print(m, file=file)
     
     os.startfile(fp.out_fp)
 
@@ -87,7 +87,7 @@ if fp.ext.lower() == '.gif' or fp.ext.lower() == '.jpg':
 
 
 
-if not fp.orig_fp == "":
+if not fp.orig_fp == "" and False:
 
     #####################################################################
     # i m a g e   - >   m e s s a g e

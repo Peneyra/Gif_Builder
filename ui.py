@@ -2,210 +2,206 @@ import numpy as np
 import cv2 as cv
 import os
 import tkinter as Tk
-from tkinter import messagebox
+import tkinter.messagebox as msgbox
 from PIL import ImageTk, Image
 from time import gmtime
-
 import buildConfig as bc
-
+import textCompression as tc
 
 def get_filepath(orig_fp):
+    # input: string - filepath via tkinter.filedialog.askopenfilename
+    # output: File_Structure - file structure for the input
     # Verifies the file is of the correct type.  If not, pop up an error message
     # define valid file extensions
-    ext_good = ['.gif','.jpg','.txt','.eml']
+    exts = ['.gif','.jpg','.txt']
+    ext = orig_fp[len(orig_fp)-4:]
 
-    if orig_fp == "":
-        quit()
-    else:
-        for e in ext_good:
-            if orig_fp[len(orig_fp)-4:] == e:
-                out = bc.File_Structure(orig_fp, e)
-                return out
-
-    root = Tk.Tk()
-    root.wm_withdraw()
-    messagebox.showinfo(
-        title="Wrong type of file", 
-        message="Please choose a .jpg, .gif, .txt, or .msg"
-    )
-    root.destroy()
+    if ext in exts:
+        return bc.File_Structure(orig_fp, ext)
+    elif ext != "":
+        root = Tk.Tk()
+        root.wm_withdraw()
+        msgbox.showinfo(
+            title="Wrong type of file", 
+            message="Please choose a .jpg, .gif, .txt, or .msg"
+        )
+        root.destroy()
 
     quit()
+
+
+def ui_instructions():
+    # input: none
+    # output: a dict of instructions for building the template
+    out = {}
+
+    out[0] = """Find the low end of the color scale on the image by 
+                clicking on the image. Click Next to continue."""
+    
+    out[1] = """Find the high end of the color scale on the image by 
+                clicking on the image. Make sure the whole color scale is 
+                highlighted. Press Back to reset. Click Next to continue."""
+    out[2] = """Find the top edge of the map by clicking on the image. 
+                Then press Next. Do not cut off the coordinates."""
+    
+    out[3] = """Find the bottom edge of the map by clicking on the image. 
+                Then press Next. Do not cut off the coordinates."""
+    
+    out[4] = """Find the left edge of the map by clicking on the image. 
+                Then press Next. Do not cut off the coordinates."""
+    
+    out[5] = """Find the right edge of the map by clicking on the image. 
+                Then press Next. Do not cut off the coordinates."""
+    
+    return out
+
+
+def ui_constants():
+    bg_color = "light gray"
+    x = 500
+    y = 400
+    return bg_color, x, y
 
 
 def allowalphanumeric(text):
     return text == "" or text.isalnum()
 
 
-def build_template(image):
-    # populate a dictionary of template images
-    im_dict = {}
-    im_dict["image_orig"] = image.copy()
+def show(label_image, input_image):
+    # input image must be ImageTk.PhotoImage
+    label_image.config(image = input_image)
 
-    bg_color = "light gray"
-    global la_x
-    la_x = 500
-    global la_y
-    la_y = 400
-    global template_index
-    template_index = 0
 
-    global c
-    c = Config_File()
+def cancel_click(root,template_type,image=None,fp=None):
+    print("cancel clicked")
+    root.destroy()
+    if template_type == "build":
+        choose_template(image,fp)
+    else:
+        exit()
 
-    inst_dict = {}
-    inst_dict[0] =  "Find the low end of the color scale on the image by clicking on the image. Click Next to continue"
-    inst_dict[1] = "Find the high end of the color scale on the image by clicking on the image. Make sure the whole color scale is highlighted. Press Back to reset. Click Next to continue."
-    inst_dict[2] =    "Find the top edge of the map by clicking on the image. Then press Next. Do not cut off the coordinates."
-    inst_dict[3] = "Find the bottom edge of the map by clicking on the image. Then press Next. Do not cut off the coordinates."
-    inst_dict[4] =   "Find the left edge of the map by clicking on the image. Then press Next. Do not cut off the coordinates."
-    inst_dict[5] =  "Find the right edge of the map by clicking on the image. Then press Next. Do not cut off the coordinates."
 
-    #####################################################################
-    # C l i c k   b e h a v i o r
-    # Click 0 = Low end of scale  | image 0 -> 1
-    # Click 1 = High end of scale | image 1 -> 2
-    # Click 2 = Top of map        | image 2 -> 3
-    # Click 3 = Bottom of map     | etc.
-    # Click 4 = Left of map
-    # Click 5 = Right of map
+def build_template(image,fp):
+
     def image_click(e):
-        global template_index
-        global la_x
-        global la_y
-        global c
-        if e.widget.winfo_parent() == '.!frame2' and template_index < 6:
-            if test_mode:
-                print(e.widget.winfo_parent())
-                print("x = " + str(e.x))
-                print("y = " + str(e.y))
+         # C l i c k   b e h a v i o r
+        # Click 0 = Low end of scale  | image 0 -> 1
+        # Click 1 = High end of scale | image 1 -> 2
+        # Click 2 = Top of map        | image 2 -> 3
+        # Click 3 = Bottom of map     | etc.
+        # Click 4 = Left of map
+        # Click 5 = Right of map
+        bg_color, x, y = ui_constants()
+        c = bc.config_get(fp)
 
-            im_x, im_y = im_dict["image_0"].shape[:2]
+        print("build template step " + str(root.i))
+
+        if e.widget.winfo_parent() == '.!frame3' and root.i < 6:
+
+            x_im, y_im = root.images[0].shape[:2]
             r_highlight = 20
+            root.images[root.i+1] = root.images[0].copy()
 
-            #####################################################################
-            # I n d e x   =   0
             # adjust behavior based on which template index we are on
-            if template_index == 0:
-                im_dict["image_1"] = im_dict["image_0"].copy()
+            if root.i == 0:
+                # store the four sides of the highlighted box = b[0:4]
+                # and the center coordinates = b[4:8]
+                b = [
+                    ((e.y * x_im) // y) - r_highlight,
+                    ((e.y * x_im) // y) + r_highlight,
+                    ((e.x * y_im) // x) - r_highlight,
+                    ((e.x * y_im) // x) + r_highlight,
+                    ((e.y * x_im) // y),
+                    ((e.y * x_im) // y),
+                    ((e.x * y_im) // x),
+                    ((e.x * y_im) // x)
+                ] 
+                root.scale_box0 = b
 
-                # set x, y for the start of the color scale
-                im_dict["scale_sta_x"] = int(np.floor(e.y * im_x / la_y))
-                im_dict["scale_sta_y"] = int(np.floor(e.x * im_y / la_x))
-
-                im_dict["scale_box"] = [im_dict["scale_sta_x"] - r_highlight,
-                                        im_dict["scale_sta_x"] + r_highlight,
-                                        im_dict["scale_sta_y"] - r_highlight,
-                                        im_dict["scale_sta_y"] + r_highlight]
-
-            #####################################################################
-            # I n d e x   =   1
-            elif template_index == 1:
-                im_dict["image_2"] = im_dict["image_0"].copy()
+            elif root.i == 1:
+                b = root.scale_box0.copy()
 
                 # set x, y for the end of the color scale
-                im_dict["scale_end_x"] = int(np.floor(e.y * im_x / la_y))
-                im_dict["scale_end_y"] = int(np.floor(e.x * im_y / la_x))
+                b[5] = (e.y * x_im) // y
+                b[7] = (e.x * y_im) // x
 
                 # decide whether the scale is horizontal or vertical
-                if abs(im_dict["scale_sta_x"] - abs(im_dict["scale_end_x"])) >= abs(im_dict["scale_sta_y"] - abs(im_dict["scale_end_y"])):
-                    im_dict["scale_end_y"] = int(np.floor(np.average([im_dict["scale_sta_y"],im_dict["scale_end_y"]])))
-                    c.scale_x = im_dict["scale_end_y"]
-                    im_dict["scale_box"][2] = im_dict["scale_end_y"] - r_highlight
-                    im_dict["scale_box"][3] = im_dict["scale_end_y"] + r_highlight
-                    im_dict["scale_box"][0] = min(im_dict["scale_sta_x"],im_dict["scale_end_x"]) - r_highlight
-                    im_dict["scale_box"][1] = max(im_dict["scale_sta_x"],im_dict["scale_end_x"]) + r_highlight
+                if abs(b[4]-b[5]) >= abs(b[6]-b[7]):
+                    b[6] = b[7] = (b[6] + b[7]) // 2
+                    b[0] = min(b[0],b[4] - r_highlight)
+                    b[1] = max(b[1],b[5] + r_highlight)
+                    b[2] = ((b[6]+b[7])//2) - r_highlight
+                    b[3] = ((b[6]+b[7])//2) + r_highlight
                 else:
-                    im_dict["scale_end_x"] = int(np.floor(np.average([im_dict["scale_sta_x"],im_dict["scale_end_x"]])))
-                    c.scale_y = im_dict["scale_end_x"]
-                    im_dict["scale_box"][0] = im_dict["scale_end_x"] - r_highlight
-                    im_dict["scale_box"][1] = im_dict["scale_end_x"] + r_highlight
-                    im_dict["scale_box"][2] = min(im_dict["scale_sta_y"],im_dict["scale_end_y"]) - r_highlight
-                    im_dict["scale_box"][3] = max(im_dict["scale_sta_y"],im_dict["scale_end_y"]) + r_highlight
+                    b[4] = b[5] = (b[4] + b[5]) // 2
+                    b[0] = ((b[4]+b[5])//2) - r_highlight
+                    b[1] = ((b[4]+b[5])//2) + r_highlight
+                    b[2] = min(b[2],b[6] - r_highlight)
+                    b[3] = max(b[3],b[7] + r_highlight)
+                root.scale_box1 = b
 
+            elif root.i == 2:
+                b = root.scale_box1.copy()
 
-            #####################################################################
-            # I n d e x   =   2
-            elif template_index == 2:
-                im_dict["image_3"] = im_dict["image_orig"].copy()
-                c.crop_y1 = int(np.floor(e.y * im_x / la_y))
-                im_dict["image_3"][:c.crop_y1,:,:] = np.zeros((c.crop_y1,im_y,3))
+                cr = [(e.y * x_im) // y,x_im,0,y_im]
 
-            else:
-                im_dict["image_" + str(template_index + 1)] = im_dict["image_" + str(template_index)].copy()
+                root.crop_box0 = cr
+                root.images[root.i+1][cr[0]:cr[1],cr[2]:cr[3]] = root.images[-1][cr[0]:cr[1],cr[2]:cr[3]]
 
-            #####################################################################
-            # I n d e x   =   3
-            if template_index == 3:
-                c.crop_y2 = int(np.floor(e.y * im_x / la_y))
-                im_dict["image_4"][c.crop_y2:,:,:] = np.zeros((im_x - c.crop_y2,im_y,3))        
+            elif root.i == 3:
+                b = root.scale_box1.copy()
+                cr = root.crop_box0.copy()
 
-            #####################################################################
-            # I n d e x   =   4
-            if template_index == 4:
-                c.crop_x1 = int(np.floor(e.x * im_y / la_x))
-                im_dict["image_5"][:,:c.crop_x1,:] = np.zeros((im_x,c.crop_x1,3))
+                cr[1] = (e.y * x_im) // y
 
-            #####################################################################
-            # I n d e x   =   5
-            if template_index == 5:
-                c.crop_x2 = int(np.floor(e.x * im_y / la_x))
-                im_dict["image_6"][:,c.crop_x2:,:] = np.zeros((im_x,im_y - c.crop_x2,3))
+                root.crop_box1 = cr
+                root.images[root.i+1][cr[0]:cr[1],cr[2]:cr[3]] = root.images[-1][cr[0]:cr[1],cr[2]:cr[3]]       
+
+            elif root.i == 4:
+                b = root.scale_box1.copy()
+                cr = root.crop_box1.copy()
+
+                cr[2] = (e.x * y_im) // x
+
+                root.crop_box2 = cr
+                root.images[root.i+1][cr[0]:cr[1],cr[2]:cr[3]] = root.images[-1][cr[0]:cr[1],cr[2]:cr[3]]      
+
+            elif root.i == 5:
+                b = root.scale_box1.copy()
+                cr = root.crop_box2.copy()
+
+                cr[3] = (e.x * y_im) // x
+
+                root.crop_box3 = cr
+                root.images[root.i+1][cr[0]:cr[1],cr[2]:cr[3]] = root.images[-1][cr[0]:cr[1],cr[2]:cr[3]]   
 
             # put the scale back
-            im_dict["image_" + str(template_index + 1)][
-                im_dict["scale_box"][0]:im_dict["scale_box"][1], 
-                im_dict["scale_box"][2]:im_dict["scale_box"][3],:] = \
-                    im_dict["image_orig"][
-                        im_dict["scale_box"][0]:im_dict["scale_box"][1], 
-                        im_dict["scale_box"][2]:im_dict["scale_box"][3],:]
+            root.images[root.i+1][b[0]:b[1],b[2]:b[3]] = root.images[-1][b[0]:b[1],b[2]:b[3]]
+            
+            root.images_resized[root.i+1] = ImageTk.PhotoImage(
+                Image.fromarray(root.images[root.i+1]).resize((x,y))
+            )
 
             # display the most recent image
-            show("image_" + str(template_index + 1))
-            if test_mode: print("you clicked on (x,y) = (" + print(e.x) + ", " + print(e.y) + ")")
-
+            show(frame_2_label,root.images_resized[root.i+1])
             button_next.pack(padx = 10, pady = 5, side = 'left')
 
             return([e.x, e.y])
 
-    def show(im_name):
-        global label_image
-        global la_x
-        global la_y
-        im_dict[im_name + "_tk"] = ImageTk.PhotoImage(Image.fromarray(cv.cvtColor(im_dict[im_name], cv.COLOR_BGR2RGB)).resize((la_x,la_y)))
-        label_image.config(image = im_dict[im_name + "_tk"])
-
-    def cancel_click():
-        print("cancel clicked")
-        global options
-        if options == []:
-            global quitter
-            quitter = "quit"
-            root.destroy()
-        else:
-            global image
-            root.destroy()
-            choose_template(image)
-
     def next_click():
         print("next clicked")
-        global template_index
-        global label_image
 
-        template_index += 1
+        root.i += 1
 
         #####################################################################
         # A d v a n c e   y o u r   t e m p l a t e
-        if template_index < 6: 
-            if template_index == 2: show("image_orig")
-            inst_text.config(text = inst_dict[template_index])
-            print("template_index = " + str(template_index))
+        if root.i < 6: 
+            inst_text.config(text = ui_instructions()[root.i])
+            if root.i == 2: show(frame_2_label,root.images_resized[-1])
 
         #####################################################################
         # F i n i s h   y o u r   t e m p l a t e
         else:
-            global c
-            global scale
             inst_title.pack_forget()
             inst_text.pack_forget()
             button_next.pack_forget()
@@ -214,26 +210,30 @@ def build_template(image):
             subject_prompt = Tk.Label(frame_0, bg = bg_color, text = "Name your template:")
             subject_prompt.pack()
 
-            global subject_name
             subject_name = Tk.Entry(frame_0, validate = "key", validatecommand=(root.register(allowalphanumeric),"%P"))
             subject_name.pack()
-            image_template = im_dict["image_orig"].copy()
+            root.images[6] = 255 * np.ones_like(root.images[-1]).astype(np.uint8)
 
             # crop the image template
-            image_template[:c.crop_y1, :, :] = np.uint8(255)
-            image_template[c.crop_y2:, :, :] = np.uint8(255)
-            image_template[:, :c.crop_x1, :] = np.uint8(255)
-            image_template[:, c.crop_x2:, :] = np.uint8(255)
+            b = root.scale_box1.copy()
+            cr = root.crop_box3.copy()
+            root.images[6][b[0]:b[1],b[2]:b[3]] = root.images[-1][b[0]:b[1],b[2]:b[3]]
+            root.images[6][cr[0]:cr[1],cr[2]:cr[3]] = root.images[-1][cr[0]:cr[1],cr[2]:cr[3]]
 
+            
+            root.images_resized[6] = ImageTk.PhotoImage(
+                Image.fromarray(root.images[6]).resize((x,y))
+            )
+            show(frame_2_label,root.images_resized[6])
+
+            c = {}
+            scale_box = np.array(root.images[-1][b[0]:b[1],b[2]:b[3]]).astype(int)
             # build the scale
-            for delta in [-10,-5,0,5,10]:
-                if c.scale == []:
-                    if c.scale_x != 0: 
-                        c.scale = scale_build_int(im_dict["image_orig"][im_dict["scale_box"][0]:im_dict["scale_box"][1],delta + c.scale_x,:])
-                        if im_dict["scale_sta_x"] > im_dict["scale_end_x"]: c.scale = c.scale[::-1]
-                    else: 
-                        c.scale = scale_build_int(im_dict["image_orig"][delta + c.scale_y,im_dict["scale_box"][2]:im_dict["scale_box"][3],:])
-                        if im_dict["scale_sta_y"] > im_dict["scale_end_y"]: c.scale = c.scale[::-1]
+            for d in [0,-5,5,-10,10]:
+                if b[4] == b[5]: scale_slice = scale_box[b[4]+d, :]
+                else: scale_slice = scale_box[:, b[6]+d]
+
+                if b[6] > b[7] or b[4] > b[5]: scale_slice = scale_slice[::-1]
 
             scale = scale_build_RGB(c.scale)
 
@@ -255,22 +255,17 @@ def build_template(image):
 
             im_dict["image_template"] = image_template
             show("image_template")
+        
         button_next.pack_forget()
 
     def back_click():
-        print("back clicked")
-        global template_index
-        if template_index > 0: 
-            template_index -= 1
-            if template_index == 2: 
-                show("image_orig")
-            else:
-                show("image_" + str(template_index))
-            inst_text.config(text = inst_dict[template_index])
-        else:
-            global image
-            root.destroy()
-            choose_template(image)
+        if root.i == 0:
+            cancel_click(root,"build", image = root.images[-1], fp = fp)
+        else: 
+            root.i -= 1
+            if root.i == 2: show(frame_2_label,root.images_resized[-1])
+            else: show(frame_2_label,root.images_resized[root.i])
+            inst_text.config(text = ui_instructions()[root.i])
 
     def newtemplate_click():
         global subject_name
@@ -289,201 +284,280 @@ def build_template(image):
             Tk.messagebox.showerror("Missing AOR name","Please name your template.")
 
     def askquestion_exists():
-        answer = Tk.messagebox.askquestion("File Already Exists", "A template with this name already exists. Do you want to replace it?", icon = "error")
+        answer = msgbox.askquestion(
+            "File Already Exists", "A template with this name already exists. Do you want to replace it?", 
+            icon = "error"
+        )
         return answer
 
     #####################################################################
     # B u i l d   t h e   r o o t   U I
+    bg_color, x, y = ui_constants()
+    c = bc.config_get(fp)
     root = Tk.Tk()
-    root.title = "Build your template"
+    root.i = 0
+    root.images = {}
+    root.images_resized = {}
+
+    root.images[-1] = image
+    root.images_resized[-1] = ImageTk.PhotoImage(
+        Image.fromarray(root.images[-1]).resize((x, y))
+    )
+    root.images[root.i] = image // 2
+    root.images_resized[root.i] = ImageTk.PhotoImage(
+        Image.fromarray(root.images[root.i]).resize((x,y))
+    )
+    root.title("A R G U S - Build a template")
+    root.iconbitmap('argus.ico')
     root.config(bg = bg_color)
 
     #####################################################################
     # B u i l d   F r a m e   0   =   I n s t r u c t i o n s
+    instructions = ui_instructions()
     frame_0 = Tk.Frame(root, bg = bg_color)
     frame_0.pack(pady = 10)
-    inst_title = Tk.Label(frame_0, justify = "left", wraplength = la_x, 
-                            font = ("Arial",16), bg = bg_color,
-                            text = 
-                            "Build your template:.")
+    inst_title = Tk.Label(
+        frame_0, 
+        justify = "left", 
+        wraplength = x, 
+        font = ("Arial",16), 
+        bg = bg_color,
+        text = "Build your template:"
+    )
     inst_title.pack(anchor = "w")
-    inst_text = Tk.Label(frame_0, justify = "left", wraplength = la_x,
-                                font = ("Arial", 12), bg = bg_color,
-                                text = inst_dict[0])
+    inst_text = Tk.Label(
+        frame_0, 
+        justify = "left", 
+        wraplength = x,
+        font = ("Arial", 12), 
+        bg = bg_color,
+        text = instructions[root.i]
+    )
     inst_text.pack(anchor = "w")
+    
+    #####################################################################
+    # B u i l d   F r a m e   1   =   B u t t o n s
+    frame_1 = Tk.Frame(root, bg = bg_color)
+    frame_1.pack()
+
+    button_back = Tk.Button(
+        frame_1, 
+        text = "Back", 
+        command = back_click
+    )
+    button_back.pack(padx = 10, pady = 5 , side = 'left')
+
+    button_canc = Tk.Button(
+        frame_1, 
+        text = "Cancel", 
+        command = lambda: cancel_click(root,"build",image=image,fp=fp)
+    )
+    button_canc.pack(padx = 10, pady = 5 , side = 'left')
+
+    button_next = Tk.Button(
+        frame_1, 
+        text = "Next", 
+        command = next_click
+    )
+    # not packed until the image is clicked
 
     #####################################################################
     # B u i l d   F r a m e   2   =   T h e   I m a g e
-
-    frame_2 = Tk.Frame(root, height = la_y, width = la_x, bg = bg_color)
+    frame_2 = Tk.Frame(root, height = y, width = x, bg = bg_color)
     frame_2.pack(padx = 10, pady = 5)
-    
-    im_dict["image_0"] = np.floor_divide(im_dict["image_orig"],2)
 
-    global label_image
-    label_image = Tk.Label(frame_2)
-    show("image_0")
-    label_image.pack()
-    
-    #####################################################################
-    # B u i l d   F r a m e   3   =   B u t t o n s
-    frame_3 = Tk.Frame(root, bg = bg_color)
-    frame_3.pack()
-
-    button_next = Tk.Button(frame_3, 
-                        text = "Next", 
-                        command = next_click)
-    # button_next.pack(padx = 10, pady = 5, side = 'left')
-
-    button_back = Tk.Button(frame_3, text = "Back", 
-                        command = back_click)
-    button_back.pack(padx = 10, pady = 5 , side = 'left')
-
-    button_canc = Tk.Button(frame_3, text = "Cancel", 
-                        command = cancel_click)
-    button_canc.pack(padx = 10, pady = 5 , side = 'left')
-
+    frame_2_label = Tk.Label(frame_2)
+    show(frame_2_label,root.images_resized[root.i])
+    frame_2_label.pack()
 
     root.attributes("-topmost", True)
-    root.protocol("WM_DELETE_WINDOW", cancel_click)
+    root.protocol("WM_DELETE_WINDOW", lambda: cancel_click(root,"build",image=image,fp=fp))
     root.bind("<Button 1>", image_click)
     root.mainloop()
 
 
+def choose_template(image,fp):
 
-def choose_template(image):
-    def show(sub):
-        global label_image
-        label_image.config(image = template_dict[sub])
-
-    def cancel_click():
-        global quitter
-        print("cancel clicked")
-        root.destroy()
-        quitter = "quit"
-
-    def new_click():
+    def new_click(image,fp):
         # FIX build out what to do if the template does not exist
-        global image
         print("new clicked")
         root.destroy()
-        build_template(image)
+        build_template(image,fp)
 
     def select_click():
-        global subject
-        global dtg
-        if not "Z" in entryDTG.get().upper():
+        if not "Z" in entry_dtg.get().upper():
             Tk.messagebox.showerror("Missing DTG","Input the DTG shown in the image. Entry must contain a Z.")
         else:
-            dtg = entryDTG.get()
+            fp.dtg = entry_dtg.get()
             print("select clicked")
-            FS.update(selection.get())
+            fp.update(template.get())
             root.destroy()
 
-    # set your global variables
-    global quitter
-    quitter = "never"
-    bg_color = "light gray"
-    image_x = 500
-    image_y = 400
+    bg_color, x, y = ui_constants()
+
+    # check if any tempaltes exist
+    # if they do then start the choose_template ui
+    # if they don't then start the build_template ui
+    templates = []
+    if os.path.exists("./templates"):
+        root = Tk.Tk()
+        root.images = {}
+        root.images_resized = {}
+        for o in os.listdir("./templates"):
+            fp.update(o)
+            if os.path.exists(fp.config) and os.path.exists(fp.template): 
+                templates.append(o)
+                root.images[o] = np.array(Image.open(fp.template))
+                root.images_resized[o] = ImageTk.PhotoImage(
+                    Image.fromarray(root.images[o]).resize((x, y))
+                )
+    else:
+        os.mkdir("./templates")
+    if templates == []: new_click(image,fp)
+
+    root.images[-1] = image
+    root.images_resized[-1] = ImageTk.PhotoImage(
+        Image.fromarray(root.images[-1]).resize((x, y))
+    )
 
     #####################################################################
     # B u i l d   t h e   r o o t   U I
-    root = Tk.Tk()
-    root.title = "Select your template"
+    root.title("A R G U S - Choose a Template")
+    root.iconbitmap('argus.ico')
     root.config(bg = bg_color)
 
     #####################################################################
     # B u i l d   F r a m e   0   =   I n s t r u c t i o n s
+    print("build frame 0")
     frame_0 = Tk.Frame(root, bg = bg_color)
     frame_0.pack(pady = 10)
-    instructions_title = Tk.Label(frame_0, justify = "left", wraplength = image_x, 
-                            font = ("Arial",16), bg = bg_color,
-                            text = 
-                            "Choose a template and enter the DTG the image shows.").pack(anchor = "w")
-    instructions_text = Tk.Label(frame_0, justify = "left", wraplength = image_x,
-                                font = ("Arial", 12), bg = bg_color,
-                                text = "If a template doesn't already exist, create " +
-                                "a new template.").pack(anchor = "w")
+    Tk.Label(
+        frame_0, 
+        justify = "center", 
+        wraplength = 2*x, 
+        font = ("Arial",16), 
+        bg = bg_color,
+        text = "Choose a template and enter the DTG the image shows. Otherwise create a new template."
+    ).pack(anchor = "w")
 
     #####################################################################
-    # B u i l d   F r a m e   1   =   D r o p d o w n   M e n u,   
-    # D T G ,   B u t t o n s
+    # B u i l d   F r a m e   1   =   O p t i o n s
+    print("build frame 1")
     frame_1 = Tk.Frame(root, bg = bg_color)
-    frame_1.pack(pady = 5)
+    frame_1.pack()
 
-    # build and populate teh drowpdown menu
-    global options
-    options = []
-    if os.path.exists("./templates"):
-        for o in os.listdir("./templates"):
-            o_path = "./templates/" + o + "/" + o
-            if os.path.exists(o_path + ".config") and os.path.exists(o_path + "_template.jpg"):
-                options.append(o)
-    else:
-        os.mkdir("./templates")
+    # template selector    
+    frame_11 = Tk.Frame(frame_1, bg = bg_color)
+    frame_11.pack(padx = 5, pady = 0, side = 'left')
+    Tk.Label(
+        frame_11, 
+        justify = "left", 
+        bg = bg_color,
+        text = "Template:"
+    ).pack(side = 'left')
 
-    if options == []:
-        new_click()
-    else:
-        selection = Tk.StringVar()
-        selection.set(options[0])
-        # display the dropdown menu
-        drop = Tk.OptionMenu(frame_1, selection, *options, command = show)
-        drop.pack(padx = 10, pady = 5, side = 'left')
-        
-        # display the DTG entry.  Populate it with the current ZULU time
-        zulu = f"{gmtime().tm_mday:02}" + f"{gmtime().tm_hour:02}" + "00Z" + \
-            month_name(gmtime().tm_mon) + str(gmtime().tm_year)
+    template = Tk.StringVar()
+    template.set(templates[0])
+    Tk.OptionMenu(
+        frame_11, 
+        template, 
+        *templates, 
+        command = lambda x: show(frame_31_label, root.images_resized[template.get()])
+    ).pack(side = 'left')
+    
+    # DTG entry.  Populate it with the current ZULU time
+    frame_12 = Tk.Frame(frame_1, bg = bg_color)
+    frame_12.pack(padx = 5, pady = 0, side = 'left')
+    Tk.Label(
+        frame_12, 
+        justify = "left", 
+        font = ("Arial", 10), 
+        bg = bg_color,
+        text = "DTG:"
+    ).pack(side = 'left')
+    
+    zulu = f"{gmtime().tm_mday:02}" \
+        + f"{gmtime().tm_hour:02}" \
+        + "00Z" \
+        + tc.month_name(gmtime().tm_mon) + str(gmtime().tm_year)
+
+    entry_dtg = Tk.Entry(
+        frame_12,
+        validate = "key", 
+        validatecommand = (root.register(allowalphanumeric), "%P")
+    )
+    
+    def update_dtg(fp,dtg): fp.dtg = dtg
+    entry_dtg.bind('<Return>', update_dtg(fp,entry_dtg.get()))
+    entry_dtg.bind('<FocusOut>', update_dtg(fp,entry_dtg.get()))
+    entry_dtg.pack(side = 'left')
+    entry_dtg.delete(0,Tk.END)
+    entry_dtg.insert(0,zulu)
+
+    # character set encoding
+    frame_13 = Tk.Frame(frame_1, bg = bg_color)
+    frame_13.pack(padx = 5, pady = 0, side = 'left')
+    Tk.Label(
+        frame_13, 
+        justify = "left", 
+        font = ("Arial", 10), 
+        bg = bg_color,
+        text = "Character Set:"
+    ).pack(side = 'left')
+
+    char_sets = ["Num+UPPER", "Num+UPPER+lower"]
+    char_set = Tk.StringVar()
+    char_set.set(char_sets[0])
+    Tk.OptionMenu(
+        frame_13, 
+        char_set, 
+        *char_sets
+    ).pack(side = 'left')
 
 
-        entryDTG = Tk.Entry(frame_1, validate = "key", validatecommand = (root.register(allowalphanumeric), "%P"))
-        entryDTG.pack(padx = 10, pady = 5 , side = 'left')
-        entryDTG.delete(0,Tk.END)
-        entryDTG.insert(0,zulu)
+    #####################################################################
+    # B u i l d   F r a m e   2   =   B u t t o n s
+    print("build frame 2")
+    frame_2 = Tk.Frame(root, bg = bg_color)
+    frame_2.pack()
+    print("   build button 0")
+    Tk.Button(
+        frame_2, 
+        text = "Select Template", 
+        command = select_click
+    ).pack(padx = 10, pady = 5, side = 'left')
 
-        if not selection.get() == "":
-            button0 = Tk.Button(frame_1, 
-                                text = "Select Template", 
-                                command = select_click)
-            button0.pack(padx = 10, pady = 5, side = 'left')
+    print("    build button 1")
+    Tk.Button(
+        frame_2, 
+        text = "New Template", 
+        command = lambda: new_click(image,fp)
+    ).pack(padx = 10, pady = 5 , side = 'left')
 
-        button1 = Tk.Button(frame_1, text = "New Template", 
-                            command = new_click)
-        button1.pack(padx = 10, pady = 5 , side = 'left')
+    print("    build button 2")
+    Tk.Button(
+        frame_2, 
+        text = "Cancel",
+        command = lambda: cancel_click(root,"choose")
+    ).pack(padx = 10, pady = 5 , side = 'left')
 
-        button2 = Tk.Button(frame_1, text = "Cancel", 
-                            command = cancel_click)
-        button2.pack(padx = 10, pady = 5 , side = 'left')
+    #####################################################################
+    # B u i l d   F r a m e   3   =   I m a g e | T e m p l a t e
+    print("build frame 3")
+    frame_3 = Tk.Frame(root, bg = bg_color).pack(padx = 10, pady = 5)
 
-        #####################################################################
-        # B u i l d   F r a m e   2   =   I m a g e s
-        frame_2 = Tk.Frame(root, bg = bg_color)
-        frame_2.pack(padx = 10, pady = 5)
+    frame_31 = Tk.Frame(frame_3, height = y, width = x, bg = bg_color)
+    frame_31.pack(padx = 10, side = 'left')
+    frame_31_label = Tk.Label(frame_31)
+    show(frame_31_label,root.images_resized[template.get()])
+    frame_31_label.pack()
 
-        #####################################################################
-        # B u i l d   F r a m e   2   T e m p l a t e
-        # populate a dictionary of template images
-        template_dict = {}
-        for op in options:
-            os.chdir(FS.cwd + "/templates/" + op)
-            template_dict[op] = ImageTk.PhotoImage(Image.open(op + "_template.jpg").resize((image_x, image_y)))
-        os.chdir(FS.cwd)
-        frame_2_template = Tk.Frame(frame_2, height = image_y, width = image_x, bg = bg_color)
-        frame_2_template.pack(padx = 10, pady = 5, side = 'left')
-        global label_image
-        label_image = Tk.Label(frame_2_template, image = template_dict[selection.get()])
-        label_image.pack()
+    frame_32 = Tk.Frame(frame_3, height = y, width = x, bg = bg_color)
+    frame_32.pack(padx = 10, side = 'left')
+    frame_32_label = Tk.Label(frame_32)
+    show(frame_32_label,root.images_resized[-1])
+    frame_32_label.pack()
 
-        #####################################################################
-        # B u i l d   F r a m e   2   I m a g e
-        # populate a dictionary of template images
-        frame_2_image = Tk.Frame(frame_2, height = image_y, width = image_x, bg = bg_color)
-        frame_2_image.pack(padx = 10, pady = 5, side = 'left')
-        template_dict["orig"] = ImageTk.PhotoImage(Image.fromarray(cv.cvtColor(image, cv.COLOR_BGR2RGB)).resize((image_x, image_y)))
-        orig_image = Tk.Label(frame_2_image, image = template_dict["orig"])
-        orig_image.pack()
-
-        root.attributes("-topmost", True)
-        root.protocol("WM_DELETE_WINDOW", cancel_click)
-        root.mainloop()
+    root.attributes("-topmost", True)
+    root.protocol("WM_DELETE_WINDOW", cancel_click)
+    root.mainloop()

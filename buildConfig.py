@@ -15,7 +15,6 @@ def create_dir(dir):
 
     return None
 
-
 class File_Structure:
     # input: str - filepath
     # input: str - file extension
@@ -25,17 +24,22 @@ class File_Structure:
         self.subject = subject
         self.template = cwd + "/templates/" + subject + "/" + subject + "_template.jpg"
         self.config = cwd + "/templates/" + subject + "/" + subject + ".yaml"
+        if self.ext == '.txt':
+            self.out_fp = self.orig_folder + "/" + subject + ".gif"
+        if self.ext == '.gif' or self.ext == '.jpg':
+            self.out_fp = self.orig_folder + "/" + subject + ".txt"
 
     # all relevant files saved as strings
     def __init__(self, orig_fp, ext):
-        subject = orig_fp.split('/')[-1][:-4]
+        subject = 'temp'
         orig_folder = '/'.join(orig_fp.split("/")[:-1]) + '/'
         cwd = os.getcwd()
-        
+    
+        self.dtg = '010000ZJAN2025'
         self.ext = ext
         self.cwd = cwd
         self.orig_fp = orig_fp
-        self.orig_file = subject
+        self.orig_file = orig_fp.split('/')[-1][:-4]
         self.orig_folder = orig_folder
         self.templates_folder = cwd + "/templates/"
         self.msg_template = cwd + '/templates/Message Template.txt'
@@ -49,7 +53,6 @@ class File_Structure:
         self.config = cwd + "/templates/" + subject + "/" + subject + ".yaml"
 
         create_dir(cwd + '/templates')
-
 
 def config_update(fp,config,key,value):
     # input: fp class - name of the template being updated

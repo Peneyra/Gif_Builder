@@ -145,7 +145,7 @@ def msgdata_write(dft,n):
     dft_address = dft_mapping(n)
     dft_flat = []
     chars = char_list()
-    x, y = dft.shape[:2]
+    x = dft.shape[0]
     out = ''
 
     for [i,j] in dft_address:
@@ -162,7 +162,7 @@ def msgdata_write(dft,n):
         if end >= len(dft_flat):
             line_cap = '/\n'
             dump = True
-        elif 67 < len(change_basis(dft_flat[beg:end],
+        elif 64 < len(change_basis(dft_flat[beg:end],
                                    max(dft_flat[beg:end]),
                                    len(chars))
                                    ):
@@ -183,7 +183,7 @@ def msgdata_write(dft,n):
     return out
 
 
-def msgdata_read(msg):
+def msg_read(msg):
     # input: string - VLF ARGUS message
     # output: float array - DFT
     header, footer = True, False
