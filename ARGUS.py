@@ -79,7 +79,28 @@ if fp.ext.lower() == '.gif' or fp.ext.lower() == '.jpg':
     os.startfile(fp.out_fp)
 
 
+elif fp.ext.lower() == '.txt':
+    with open(fp.orig_fp,'r') as file: msg = file.read()
 
+    dft, max_coeff, template, dtg = tc.msg_read(msg)
+
+    fp.update(template)
+    c = bc.config_get(fp)
+
+    plt = cv.idft(dft)
+
+    plt[plt < 0] = 0
+    plt = plt * max_coeff // np.max(plt)
+    plt = plt[padding:-1*padding, padding:-1*padding]
+    cv.imwrite(
+        fp.out_fp, 
+        plot.restore(
+            plt,
+            template,
+            np.array(c['scale']).astype(np.uint8),
+            dtg
+        )
+    )
 
 
 

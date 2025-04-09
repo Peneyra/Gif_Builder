@@ -1,10 +1,12 @@
-import numpy as np
-import cv2 as cv
 import os
+import cv2 as cv
+import numpy as np
 import tkinter as Tk
-import tkinter.messagebox as msgbox
-from PIL import ImageTk, Image
 from time import gmtime
+from PIL import ImageTk, Image
+import tkinter.messagebox as msgbox
+
+import plot
 import buildConfig as bc
 import textCompression as tc
 
@@ -193,68 +195,12 @@ def build_template(image,fp):
 
         root.i += 1
 
-        #####################################################################
-        # A d v a n c e   y o u r   t e m p l a t e
         if root.i < 6: 
             inst_text.config(text = ui_instructions()[root.i])
             if root.i == 2: show(frame_2_label,root.images_resized[-1])
 
-        #####################################################################
-        # F i n i s h   y o u r   t e m p l a t e
         else:
-            inst_title.pack_forget()
-            inst_text.pack_forget()
-            button_next.pack_forget()
-
-            button_back.config(text = "Create New Template", command = newtemplate_click)
-            subject_prompt = Tk.Label(frame_0, bg = bg_color, text = "Name your template:")
-            subject_prompt.pack()
-
-            subject_name = Tk.Entry(frame_0, validate = "key", validatecommand=(root.register(allowalphanumeric),"%P"))
-            subject_name.pack()
-            root.images[6] = 255 * np.ones_like(root.images[-1]).astype(np.uint8)
-
-            # crop the image template
-            b = root.scale_box1.copy()
-            cr = root.crop_box3.copy()
-            root.images[6][b[0]:b[1],b[2]:b[3]] = root.images[-1][b[0]:b[1],b[2]:b[3]]
-            root.images[6][cr[0]:cr[1],cr[2]:cr[3]] = root.images[-1][cr[0]:cr[1],cr[2]:cr[3]]
-
-            
-            root.images_resized[6] = ImageTk.PhotoImage(
-                Image.fromarray(root.images[6]).resize((x,y))
-            )
-            show(frame_2_label,root.images_resized[6])
-
-            c = {}
-            scale_box = np.array(root.images[-1][b[0]:b[1],b[2]:b[3]]).astype(int)
-            # build the scale
-            for d in [0,-5,5,-10,10]:
-                if b[4] == b[5]: scale_slice = scale_box[b[4]+d, :]
-                else: scale_slice = scale_box[:, b[6]+d]
-
-                if b[6] > b[7] or b[4] > b[5]: scale_slice = scale_slice[::-1]
-
-            scale = scale_build_RGB(c.scale)
-
-            # get a plot of the image
-            t, b, l, r = get_tblr(image_template)
-            plot_template = plot_scale(image_template[t:b,l:r,:])
-            plot_mask = np.repeat(np.array(plot_smooth(plot_template,2) == 0).astype(int)[:,:,np.newaxis], 3, axis = 2)
-
-            image_template[t:b,l:r,:] = np.multiply(image_template[t:b,l:r,:], plot_mask).astype(np.uint8)
-            image_template[t:b,l:r,2] = image_template[t:b,l:r,2] + 125 * np.array(plot_mask[:,:,2] == 0).astype(int)
-            
-            # put the template color scale back in
-            image_template[
-                im_dict["scale_box"][0]:im_dict["scale_box"][1], 
-                im_dict["scale_box"][2]:im_dict["scale_box"][3],:] = \
-                    im_dict["image_orig"][
-                        im_dict["scale_box"][0]:im_dict["scale_box"][1], 
-                        im_dict["scale_box"][2]:im_dict["scale_box"][3],:]
-
-            im_dict["image_template"] = image_template
-            show("image_template")
+            finalize_template()
         
         button_next.pack_forget()
 
@@ -267,19 +213,21 @@ def build_template(image,fp):
             else: show(frame_2_label,root.images_resized[root.i])
             inst_text.config(text = ui_instructions()[root.i])
 
-    def newtemplate_click():
-        global subject_name
-        global image
+    def create_template_click():
         if subject_name.get() != "":
-            FS.update(subject_name.get())
-            if os.path.isfile(FS.template):
+            fp.update(subject_name.get())
+            if os.path.isfile(fp.template):
                 if askquestion_exists() == "no":
+                    fp.update('temp')
                     return
-            if not os.path.exists(FS.templates_folder + FS.subject): os.mkdir(FS.templates_folder + FS.subject)
-            cv.imwrite(FS.template,im_dict["image_template"])
-            config_write(c)
+
+            if not os.path.exists(fp.templates_folder + fp.subject): 
+                os.mkdir(fp.templates_folder + fp.subject)
+
+            cv.imwrite(fp.template,cv.cvtColor(root.images[6], cv.COLOR_BGR2RGB))
+            bc.config_update(fp,root.c,None,None)
             root.destroy()
-            choose_template(image)
+            choose_template(image, fp)
         else:
             Tk.messagebox.showerror("Missing AOR name","Please name your template.")
 
@@ -289,6 +237,58 @@ def build_template(image,fp):
             icon = "error"
         )
         return answer
+
+    def finalize_template():
+        inst_title.pack_forget()
+        inst_text.pack_forget()
+        button_next.pack_forget()
+        button_back.pack_forget()
+        button_canc.pack_forget()
+
+        button_create.pack(padx = 10, pady = 5 , side = 'left')
+        button_canc.pack(padx = 10, pady = 5 , side = 'left')
+        subject_prompt.pack()
+        subject_name.pack()
+
+        root.images[6] = 255 * np.ones_like(root.images[-1]).astype(np.uint8)
+
+        # crop the image template
+        root.c = {}
+        b = root.c['b'] = root.scale_box1.copy()
+        cr = root.c['cr'] = root.crop_box3.copy()
+        root.images[6][b[0]:b[1],b[2]:b[3]] = root.images[-1][b[0]:b[1],b[2]:b[3]]
+        root.images[6][cr[0]:cr[1],cr[2]:cr[3]] = root.images[-1][cr[0]:cr[1],cr[2]:cr[3]]
+
+
+        root.c['scale'] = []
+        scale_box = np.array(root.images[-1][b[0]:b[1],b[2]:b[3]]).astype(int)
+        # build the scale
+        for d in [20,15,25,10,30]:
+            if b[4] == b[5]: scale_slice = scale_box[d,:]
+            else: scale_slice = scale_box[:,d]
+
+            if b[6] > b[7] or b[4] > b[5]: scale_slice = scale_slice[::-1]
+
+            if len(plot.build_scale(scale_slice)) > len(root.c['scale']): 
+                root.c['scale'] = plot.build_scale(scale_slice)
+
+        # get a plot of the image
+        l, r, t, b = plot.lrtb(root.images[6])
+        plt = plot.gen(root.images[6], root.c['scale'])
+        plt = plot.smooth(plt, 2)
+        plt = plt // 1
+        mask = np.array(plt == np.min(plt)).astype(int)
+
+        for i in range(3):
+            root.images[6][t:b,l:r,i] = np.multiply(root.images[6][t:b,l:r,i], mask).astype(np.uint8)
+
+        mask = np.array(plt > np.min(plt)).astype(int)
+        root.images[6][t:b,l:r,0] = root.images[6][t:b,l:r,0] + np.array(125 * mask).astype(int)
+
+        root.images_resized[6] = ImageTk.PhotoImage(
+            Image.fromarray(root.images[6]).resize((x,y))
+        )
+        show(frame_2_label,root.images_resized[6])
 
     #####################################################################
     # B u i l d   t h e   r o o t   U I
@@ -335,6 +335,9 @@ def build_template(image,fp):
     )
     inst_text.pack(anchor = "w")
     
+    subject_prompt = Tk.Label(frame_0, bg = bg_color, text = "Name your template:")
+    subject_name = Tk.Entry(frame_0, validate = "key", validatecommand=(root.register(allowalphanumeric),"%P"))
+    
     #####################################################################
     # B u i l d   F r a m e   1   =   B u t t o n s
     frame_1 = Tk.Frame(root, bg = bg_color)
@@ -360,6 +363,12 @@ def build_template(image,fp):
         command = next_click
     )
     # not packed until the image is clicked
+    
+    button_create = Tk.Button(
+        frame_1, 
+        text = "Create New Template", 
+        command = create_template_click
+    )
 
     #####################################################################
     # B u i l d   F r a m e   2   =   T h e   I m a g e

@@ -15,6 +15,7 @@ def create_dir(dir):
 
     return None
 
+
 class File_Structure:
     # input: str - filepath
     # input: str - file extension
@@ -49,10 +50,11 @@ class File_Structure:
             self.out_fp = orig_folder + "/" + subject + ".txt"
 
         self.subject = subject
-        self.template = cwd + "/templates/" + subject + "/" + subject + "_template.jpg"
+        self.template = cwd + "/templates/" + subject + "/" + subject + "_template.gif"
         self.config = cwd + "/templates/" + subject + "/" + subject + ".yaml"
 
         create_dir(cwd + '/templates')
+
 
 def config_update(fp,config,key,value):
     # input: fp class - name of the template being updated
@@ -62,18 +64,16 @@ def config_update(fp,config,key,value):
     # output: dict    - all of the configuration file as a dictionary
     # output: save the dict as a yaml
     out = config
+    required_keys = ['name','scale','cr','b']
 
     create_dir(fp.templates_folder + '/' + fp.subject)
 
     if not os.path.exists(fp.config):
-        out['name'] = fp.subject
-        out['scale'] = []
-        out['crop_l'] = 0
-        out['crop_r'] = 0
-        out['crop_t'] = 0
-        out['crop_b'] = 0
-        out['scale_loc_vert'] = 0
-        out['scale_loc_horz'] = 0
+        for key in required_keys:
+            if not key in out.keys():
+                if key == 'name': out[key] = fp.subject
+            else:
+                out[key] = []
     
     out[key] = value
 
@@ -95,24 +95,10 @@ def config_get(fp):
     create_dir(fp.templates_folder + '/' + fp.subject)
 
     if not os.path.exists(fp.config):
-        out['name'] = fp.subject
-        out['scale'] = []
-        out['crop_l'] = 0
-        out['crop_r'] = 0
-        out['crop_t'] = 0
-        out['crop_b'] = 0
-        out['scale_loc_vert'] = 0
-        out['scale_loc_horz'] = 0
-        
-        try: 
-            with open(fp.config,'w') as file: 
-                yaml.safe_dump(out,file)
-            print('No configuration file found. Creating'
-            'a new config file here: ' + fp.config)
-        except:
-            print('Could not update config file. Check logs.')
+        print('Could not update config file. Check logs.')
 
-    with open(fp.config, 'r') as file: 
-        out = yaml.safe_load(file)
+    else:
+        with open(fp.config, 'r') as file: 
+            out = yaml.safe_load(file)
 
     return out
