@@ -1,4 +1,5 @@
 import numpy as np
+import imageio
 import cv2 as cv
 
 # The purpose of this file is to define functions to create and 
@@ -95,7 +96,7 @@ def gen(image, scale):
         for j in range(3): 
             mask = np.multiply(mask, abs(image[t:b,l:r,j] - scale[i][j]) < 25)
         out = out + (mask.astype(int) * (i + 1))
-        cv.imwrite('./debug/yaml_test_plt_' + str(i) + '.png', 5 * (out - np.min(out)))
+        imageio.mimsave('./debug/yaml_test_plt_' + str(i) + '.gif', [5 * (out - np.min(out))])
 
     out = out - edge_mean(out)
 
@@ -106,7 +107,7 @@ def smooth(plt, repeat):
     # input: np array (x,y) - grayscale plot
     # input: int            - number of times to repeat the smoothing fn
     out = np.array(plt - np.min(plt))
-    cv.imwrite('./debug/yaml_test_smooth_raw.png', 10 * out)
+    imageio.mimsave('./debug/yaml_test_smooth_raw.png', [10 * out])
 
     for r in range(repeat):
         tmp = np.pad(
@@ -127,8 +128,8 @@ def smooth(plt, repeat):
         mask = np.array(out == 0).astype(np.float64)
         out = out + np.multiply(add, mask)
 
-        cv.imwrite('./debug/yaml_test_add_' + str(r) + '.png', 10 * (add - np.min(add)))
-        cv.imwrite('./debug/yaml_test_cnt_' + str(r) + '.png', 10 * (cnt - np.min(cnt)))
+        imageio.mimsave('./debug/yaml_test_add_' + str(r) + '.png', [10 * (add - np.min(add))])
+        imageio.mimsave('./debug/yaml_test_cnt_' + str(r) + '.png', [10 * (cnt - np.min(cnt))])
 
     out = out - edge_mean(out)
 
@@ -139,9 +140,9 @@ def condition(plt,padding):
     # input: np array (x,y)              - grayscale plot
     # output: np array (x+2*pad,y+2*pad) - grayscale plot
     plt = np.pad(plt, pad_width = padding, mode='symmetric')
-    cv.imwrite('./debug/yaml_test_plt_raw.png', (plt - np.min(plt)) * (200 / np.max(plt * 2)))
+    imageio.mimsave('./debug/yaml_test_plt_raw.png', [(plt - np.min(plt)) * (200 / np.max(plt * 2))])
     plt = smooth(plt,2)
-    cv.imwrite('./debug/yaml_test_plt_smooth.png', (plt - np.min(plt)) * (200 / np.max(plt * 2)))
+    imageio.mimsave('./debug/yaml_test_plt_smooth.png', [(plt - np.min(plt)) * (200 / np.max(plt * 2))])
 
     return plt
 
@@ -152,9 +153,9 @@ def restore(plt, template, scale, dtg):
     # input: np array (x,3)   - scale of RGB values in order of magnitude
     # input: string           - date, time, group
     # output: np array (x,y,3)- output image
-    out = cv.imread(
-        './templates/' + template + '/' + template + '_template.jpg'
-    )
+    out = imageio.mimread(
+        './templates/' + template + '/' + template + '_template.gif'
+    )[0]
     x, y = out.shape[:2]
     l, r, t, b = lrtb(out)
     mt = [0, 0, 124]
@@ -180,7 +181,7 @@ def restore(plt, template, scale, dtg):
             np.multiply(mask[t:b,l:r] == 0 ,out[t:b,l:r,i]) 
             + np.multiply(mask[t:b,l:r], plt_color[:,:,i])
         )
-        cv.imwrite("./debug/yaml_test_img_" + str(i) + ".png", out)
+        imageio.mimsave("./debug/yaml_test_img_" + str(i) + ".gif", out)
 
     if t < x - b:
         x_text = b + (x - b)//2

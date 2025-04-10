@@ -23,7 +23,7 @@ class File_Structure:
         cwd = os.getcwd()
 
         self.subject = subject
-        self.template = cwd + "/templates/" + subject + "/" + subject + "_template.jpg"
+        self.template = cwd + "/templates/" + subject + "/" + subject + "_template.gif"
         self.config = cwd + "/templates/" + subject + "/" + subject + ".yaml"
         if self.ext == '.txt':
             self.out_fp = self.orig_folder + "/" + subject + ".gif"

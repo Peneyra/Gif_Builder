@@ -1,5 +1,5 @@
 import os
-import cv2 as cv
+import imageio
 import numpy as np
 import tkinter as Tk
 from time import gmtime
@@ -224,7 +224,7 @@ def build_template(image,fp):
             if not os.path.exists(fp.templates_folder + fp.subject): 
                 os.mkdir(fp.templates_folder + fp.subject)
 
-            cv.imwrite(fp.template,cv.cvtColor(root.images[6], cv.COLOR_BGR2RGB))
+            imageio.mimsave(fp.template,[root.images[6]])
             bc.config_update(fp,root.c,None,None)
             root.destroy()
             choose_template(image, fp)

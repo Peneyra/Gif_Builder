@@ -7,19 +7,19 @@ def char_list():
 
 
 def month_name(m):
-    if m == 1: return "JAN"
-    elif m == 2: return "FEB" 
-    elif m == 3: return "MAR" 
-    elif m == 4: return "APR" 
-    elif m == 5: return "MAY" 
-    elif m == 6: return "JUN" 
-    elif m == 7: return "JUL" 
-    elif m == 8: return "AUG" 
-    elif m == 9: return "SEP" 
-    elif m == 10: return "OCT" 
-    elif m == 11: return "NOV" 
-    elif m == 12: return "DEC"
-    else: return None
+    if m == 1:    return " JAN "
+    elif m == 2:  return " FEB " 
+    elif m == 3:  return " MAR " 
+    elif m == 4:  return " APR " 
+    elif m == 5:  return " MAY " 
+    elif m == 6:  return " JUN " 
+    elif m == 7:  return " JUL " 
+    elif m == 8:  return " AUG " 
+    elif m == 9:  return " SEP " 
+    elif m == 10: return " OCT " 
+    elif m == 11: return " NOV " 
+    elif m == 12: return " DEC "
+    else:         return None
 
 
 def dft_mapping(n):
