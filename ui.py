@@ -78,7 +78,10 @@ def cancel_click(root,template_type,image=None,fp=None):
     print("cancel clicked")
     root.destroy()
     if template_type == "build":
-        choose_template(image,fp)
+        for o in os.listdir("./templates"):
+            fp.update(o)
+            if os.path.exists(fp.config) and os.path.exists(fp.template): 
+                choose_template(image,fp)
     else:
         exit()
 
@@ -225,6 +228,9 @@ def build_template(image,fp):
                 os.mkdir(fp.templates_folder + fp.subject)
 
             imageio.mimsave(fp.template,[root.images[6]])
+            print("the template folder is here:")
+            print(fp.template)
+            print()
             bc.config_update(fp,root.c,None,None)
             root.destroy()
             choose_template(image, fp)
@@ -402,6 +408,10 @@ def choose_template(image,fp):
             fp.update(template.get())
             root.destroy()
 
+
+    def update_dtg(fp,dtg): 
+        fp.dtg = dtg
+
     bg_color, x, y = ui_constants()
 
     # check if any tempaltes exist
@@ -416,157 +426,158 @@ def choose_template(image,fp):
             fp.update(o)
             if os.path.exists(fp.config) and os.path.exists(fp.template): 
                 templates.append(o)
-                root.images[o] = np.array(Image.open(fp.template))
+                root.images[o] = imageio.mimread(fp.template)[0]
                 root.images_resized[o] = ImageTk.PhotoImage(
                     Image.fromarray(root.images[o]).resize((x, y))
                 )
     else:
         os.mkdir("./templates")
-    if templates == []: new_click(image,fp)
+    if templates == []: 
+        new_click(image,fp)
+    else:
+        root.images[-1] = image
+        root.images_resized[-1] = ImageTk.PhotoImage(
+            Image.fromarray(root.images[-1]).resize((x, y))
+        )
 
-    root.images[-1] = image
-    root.images_resized[-1] = ImageTk.PhotoImage(
-        Image.fromarray(root.images[-1]).resize((x, y))
-    )
+        #####################################################################
+        # B u i l d   t h e   r o o t   U I
+        root.title("A R G U S - Choose a Template")
+        root.iconbitmap('argus.ico')
+        root.config(bg = bg_color)
 
-    #####################################################################
-    # B u i l d   t h e   r o o t   U I
-    root.title("A R G U S - Choose a Template")
-    root.iconbitmap('argus.ico')
-    root.config(bg = bg_color)
+        #####################################################################
+        # B u i l d   F r a m e   0   =   I n s t r u c t i o n s
+        print("build frame 0")
+        frame_0 = Tk.Frame(root, bg = bg_color)
+        frame_0.pack(pady = 10)
+        Tk.Label(
+            frame_0, 
+            justify = "center", 
+            wraplength = 2*x, 
+            font = ("Arial",16), 
+            bg = bg_color,
+            text = "Choose a template and enter the DTG the image shows. Otherwise create a new template."
+        ).pack(anchor = "w")
 
-    #####################################################################
-    # B u i l d   F r a m e   0   =   I n s t r u c t i o n s
-    print("build frame 0")
-    frame_0 = Tk.Frame(root, bg = bg_color)
-    frame_0.pack(pady = 10)
-    Tk.Label(
-        frame_0, 
-        justify = "center", 
-        wraplength = 2*x, 
-        font = ("Arial",16), 
-        bg = bg_color,
-        text = "Choose a template and enter the DTG the image shows. Otherwise create a new template."
-    ).pack(anchor = "w")
+        #####################################################################
+        # B u i l d   F r a m e   1   =   O p t i o n s
+        print("build frame 1")
+        frame_1 = Tk.Frame(root, bg = bg_color)
+        frame_1.pack()
 
-    #####################################################################
-    # B u i l d   F r a m e   1   =   O p t i o n s
-    print("build frame 1")
-    frame_1 = Tk.Frame(root, bg = bg_color)
-    frame_1.pack()
+        # template selector    
+        frame_11 = Tk.Frame(frame_1, bg = bg_color)
+        frame_11.pack(padx = 5, pady = 0, side = 'left')
+        Tk.Label(
+            frame_11, 
+            justify = "left", 
+            bg = bg_color,
+            text = "Template:"
+        ).pack(side = 'left')
 
-    # template selector    
-    frame_11 = Tk.Frame(frame_1, bg = bg_color)
-    frame_11.pack(padx = 5, pady = 0, side = 'left')
-    Tk.Label(
-        frame_11, 
-        justify = "left", 
-        bg = bg_color,
-        text = "Template:"
-    ).pack(side = 'left')
+        template = Tk.StringVar()
+        template.set(templates[0])
+        Tk.OptionMenu(
+            frame_11, 
+            template, 
+            *templates, 
+            command = lambda x: show(frame_31_label, root.images_resized[template.get()])
+        ).pack(side = 'left')
+        
+        # DTG entry.  Populate it with the current ZULU time
+        frame_12 = Tk.Frame(frame_1, bg = bg_color)
+        frame_12.pack(padx = 5, pady = 0, side = 'left')
+        Tk.Label(
+            frame_12, 
+            justify = "left", 
+            font = ("Arial", 10), 
+            bg = bg_color,
+            text = "DTG:"
+        ).pack(side = 'left')
+        
+        zulu = Tk.StringVar()
+        zulu.set(f"{gmtime().tm_mday:02}" \
+            + f"{gmtime().tm_hour:02}" \
+            + "00Z" \
+            + tc.month_name(gmtime().tm_mon) + str(gmtime().tm_year))
 
-    template = Tk.StringVar()
-    template.set(templates[0])
-    Tk.OptionMenu(
-        frame_11, 
-        template, 
-        *templates, 
-        command = lambda x: show(frame_31_label, root.images_resized[template.get()])
-    ).pack(side = 'left')
-    
-    # DTG entry.  Populate it with the current ZULU time
-    frame_12 = Tk.Frame(frame_1, bg = bg_color)
-    frame_12.pack(padx = 5, pady = 0, side = 'left')
-    Tk.Label(
-        frame_12, 
-        justify = "left", 
-        font = ("Arial", 10), 
-        bg = bg_color,
-        text = "DTG:"
-    ).pack(side = 'left')
-    
-    zulu = f"{gmtime().tm_mday:02}" \
-        + f"{gmtime().tm_hour:02}" \
-        + "00Z" \
-        + tc.month_name(gmtime().tm_mon) + str(gmtime().tm_year)
+        entry_dtg = Tk.Entry(
+            frame_12,
+            validate = "key", 
+            validatecommand = (root.register(allowalphanumeric), "%P"),
+            textvariable = zulu
+        )
+        update_dtg(fp,entry_dtg.get())
+        
+        entry_dtg.bind('<Return>', update_dtg(fp,entry_dtg.get()))
+        entry_dtg.bind('<FocusOut>', update_dtg(fp,entry_dtg.get()))
+        entry_dtg.pack(side = 'left')
 
-    entry_dtg = Tk.Entry(
-        frame_12,
-        validate = "key", 
-        validatecommand = (root.register(allowalphanumeric), "%P")
-    )
-    
-    def update_dtg(fp,dtg): fp.dtg = dtg
-    entry_dtg.bind('<Return>', update_dtg(fp,entry_dtg.get()))
-    entry_dtg.bind('<FocusOut>', update_dtg(fp,entry_dtg.get()))
-    entry_dtg.pack(side = 'left')
-    entry_dtg.delete(0,Tk.END)
-    entry_dtg.insert(0,zulu)
+        # character set encoding
+        frame_13 = Tk.Frame(frame_1, bg = bg_color)
+        frame_13.pack(padx = 5, pady = 0, side = 'left')
+        Tk.Label(
+            frame_13, 
+            justify = "left", 
+            font = ("Arial", 10), 
+            bg = bg_color,
+            text = "Character Set:"
+        ).pack(side = 'left')
 
-    # character set encoding
-    frame_13 = Tk.Frame(frame_1, bg = bg_color)
-    frame_13.pack(padx = 5, pady = 0, side = 'left')
-    Tk.Label(
-        frame_13, 
-        justify = "left", 
-        font = ("Arial", 10), 
-        bg = bg_color,
-        text = "Character Set:"
-    ).pack(side = 'left')
-
-    char_sets = ["Num+UPPER", "Num+UPPER+lower"]
-    char_set = Tk.StringVar()
-    char_set.set(char_sets[0])
-    Tk.OptionMenu(
-        frame_13, 
-        char_set, 
-        *char_sets
-    ).pack(side = 'left')
+        char_sets = ["Num+UPPER"]
+        char_set = Tk.StringVar()
+        char_set.set(char_sets[0])
+        Tk.OptionMenu(
+            frame_13, 
+            char_set, 
+            *char_sets
+        ).pack(side = 'left')
 
 
-    #####################################################################
-    # B u i l d   F r a m e   2   =   B u t t o n s
-    print("build frame 2")
-    frame_2 = Tk.Frame(root, bg = bg_color)
-    frame_2.pack()
-    print("   build button 0")
-    Tk.Button(
-        frame_2, 
-        text = "Select Template", 
-        command = select_click
-    ).pack(padx = 10, pady = 5, side = 'left')
+        #####################################################################
+        # B u i l d   F r a m e   2   =   B u t t o n s
+        print("build frame 2")
+        frame_2 = Tk.Frame(root, bg = bg_color)
+        frame_2.pack()
+        print("   build button 0")
+        Tk.Button(
+            frame_2, 
+            text = "Select Template", 
+            command = select_click
+        ).pack(padx = 10, pady = 5, side = 'left')
 
-    print("    build button 1")
-    Tk.Button(
-        frame_2, 
-        text = "New Template", 
-        command = lambda: new_click(image,fp)
-    ).pack(padx = 10, pady = 5 , side = 'left')
+        print("    build button 1")
+        Tk.Button(
+            frame_2, 
+            text = "New Template", 
+            command = lambda: new_click(image,fp)
+        ).pack(padx = 10, pady = 5 , side = 'left')
 
-    print("    build button 2")
-    Tk.Button(
-        frame_2, 
-        text = "Cancel",
-        command = lambda: cancel_click(root,"choose")
-    ).pack(padx = 10, pady = 5 , side = 'left')
+        print("    build button 2")
+        Tk.Button(
+            frame_2, 
+            text = "Cancel",
+            command = lambda: cancel_click(root,"choose")
+        ).pack(padx = 10, pady = 5 , side = 'left')
 
-    #####################################################################
-    # B u i l d   F r a m e   3   =   I m a g e | T e m p l a t e
-    print("build frame 3")
-    frame_3 = Tk.Frame(root, bg = bg_color).pack(padx = 10, pady = 5)
+        #####################################################################
+        # B u i l d   F r a m e   3   =   I m a g e | T e m p l a t e
+        print("build frame 3")
+        frame_3 = Tk.Frame(root, bg = bg_color).pack(padx = 10, pady = 5)
 
-    frame_31 = Tk.Frame(frame_3, height = y, width = x, bg = bg_color)
-    frame_31.pack(padx = 10, side = 'left')
-    frame_31_label = Tk.Label(frame_31)
-    show(frame_31_label,root.images_resized[template.get()])
-    frame_31_label.pack()
+        frame_31 = Tk.Frame(frame_3, height = y, width = x, bg = bg_color)
+        frame_31.pack(padx = 10, side = 'left')
+        frame_31_label = Tk.Label(frame_31)
+        show(frame_31_label,root.images_resized[template.get()])
+        frame_31_label.pack()
 
-    frame_32 = Tk.Frame(frame_3, height = y, width = x, bg = bg_color)
-    frame_32.pack(padx = 10, side = 'left')
-    frame_32_label = Tk.Label(frame_32)
-    show(frame_32_label,root.images_resized[-1])
-    frame_32_label.pack()
+        frame_32 = Tk.Frame(frame_3, height = y, width = x, bg = bg_color)
+        frame_32.pack(padx = 10, side = 'left')
+        frame_32_label = Tk.Label(frame_32)
+        show(frame_32_label,root.images_resized[-1])
+        frame_32_label.pack()
 
-    root.attributes("-topmost", True)
-    root.protocol("WM_DELETE_WINDOW", cancel_click)
-    root.mainloop()
+        root.attributes("-topmost", True)
+        root.protocol("WM_DELETE_WINDOW", cancel_click)
+        root.mainloop()

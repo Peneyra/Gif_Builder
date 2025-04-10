@@ -119,20 +119,20 @@ def msgcontent_write(fp):
     # if the message doesn't already exist, load a generic file to read
     if not os.path.exists(fp.msg_template):
         with open(fp.msg_template,'w') as file:
-            print("R XXXXXXZ MMM YY", file)
-            print("FM COMSUBPAC PEARL HARBOR HI", file)
-            print("TO SSBN PAC", file)
-            print("BT", file)
-            print("UNCLAS", file)
-            print("SUBJ/VLF WEATHER GIF//", file)
+            print("R XXXXXXZ MMM YY",             file = file)
+            print("FM COMSUBPAC PEARL HARBOR HI", file = file)
+            print("TO SSBN PAC",                  file = file)
+            print("BT",                           file = file)
+            print("UNCLAS",                       file = file)
+            print("SUBJ/VLF WEATHER GIF//",       file = file)
             print("RMKS/REACH OUT TO ISIC FOR INSTRUCTIONS ON HOW TO USE THIS "
-                  "MESSAGE.", file)
-            print("<message>", file)
-            print("BT", file)
-            print("#0001", file)
-            print("NNNN", file)
+                  "MESSAGE.",                     file = file)
+            print("<message>",                    file = file)
+            print("BT",                           file = file)
+            print("#0001",                        file = file)
+            print("NNNN",                         file = file)
+    with open(fp.msg_template,'r') as file: out = file.read()
 
-    with open(fp.msg_template,'r') as file_r: out = file_r.read()
 
     return out.split("<message>\n")[0], out.split("<message>\n")[1]
 
@@ -150,31 +150,31 @@ def msgdata_write(dft,n):
 
     for [i,j] in dft_address:
         i1 = [i,x-i-1]
-        for i2 in i1:
-            dft_flat.append(coeff_round(dft[i2,j]))
+        for i2 in i1: dft_flat.append(coeff_round(dft[i2,j]))
     
-    beg = 0
-    end = 2
+    beg, end = 0, 2
     dump = False
     line_cap = '\n'
 
     while beg < len(dft_flat):
-        if end >= len(dft_flat):
+        m_d = max(dft_flat[beg:end]) + 1
+        line = change_basis(dft_flat[beg:end], m_d, len(chars))
+        if 67 < len(line):
+            end -= 1
+            m_d = max(dft_flat[beg:end]) + 1
+            line = change_basis(dft_flat[beg:end], m_d, len(chars))
+            dump = True
+        elif end >= len(dft_flat):
             line_cap = '/\n'
             dump = True
-        elif 64 < len(change_basis(dft_flat[beg:end],
-                                   max(dft_flat[beg:end]),
-                                   len(chars))
-                                   ):
-            end -= 1
-            dump = True
         if dump:
-            m_d = max(dft_flat[beg:end])
             print(dft_flat[beg:end])
-            out += str(chars[m_d + 1])
-            for cb in change_basis(dft_flat[beg:end],m_d+1,len(chars)):
+
+            out += str(chars[m_d])
+            for cb in line:
                 out += str(chars[cb])
             out += line_cap
+
             beg = end
             end += 1
             dump = False
@@ -203,22 +203,23 @@ def msg_read(msg):
 
         elif not footer:
             m_d = chars.find(m[0])
-            line_int = []
+            line = []
             for a in m[1:]:
                 if a == '/': footer = True
-                else:        line_int.append(chars.find(a))
-            line_int = change_basis(line_int,len(chars),m_d)
-            print(line_int)
-            for li in line_int: dft_flat.append(li)
-            with open("./debug/DFT_flat_read.txt",'w') as file: 
-                print(dft_flat, file = file)
+                else:        line.append(chars.find(a))
+            line = change_basis(line,len(chars),m_d)
+            print(line)
+            for li in line: dft_flat.append(li)
     k = 0
-
     for [i,j] in dft_address:
         i1 = [i,x-i-1]
         for i2 in i1:
-            dft[i2,j] = coeff_unround(dft_flat[k])
-            print(str(i2) + ", " + str(j) + ", " + str(dft_flat[k]))
+            if k < len(dft_flat): 
+                dft[i2,j] = coeff_unround(dft_flat[k])
+                # print(str(i2) + ", " + str(j) + ", " + str(dft_flat[k]))
+            else:
+                None
+                # print(k)
             k += 1
             
     return dft, max_coeff, template, dtg

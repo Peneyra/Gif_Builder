@@ -72,8 +72,7 @@ def config_update(fp,config,key,value):
         for key in required_keys:
             if not key in out.keys():
                 if key == 'name': out[key] = fp.subject
-            else:
-                out[key] = []
+                else: out[key] = []
     
     out[key] = value
 

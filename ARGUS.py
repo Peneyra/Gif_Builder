@@ -35,46 +35,47 @@ if fp.ext.lower() == '.gif' or fp.ext.lower() == '.jpg':
     if fp.ext.lower() == '.gif': image = image[0]
 
     # Open the UI to choose/build a template
-    # template, dtg = ui.choose_template(image, fp)
+    # template, dtg = ui.choose6_template(image, fp)
     ui.choose_template(image,fp)
 
-    # Save the contents of the config file to c
-    c = bc.config_get(fp)
+    if not fp.subject == 'temp':
+        # Save the contents of the config file to c
+        c = bc.config_get(fp)
 
-    # Build a scalar plot off the image and condition it
-    plt = plot.gen(image, np.array(c['scale']))
-    plt = plot.condition(plt, padding)
-    
-    # Save the max_coefficient for normalizing the output
-    max_coeff = int(np.max(plt - np.min(plt)) - 1)
+        # Build a scalar plot off the image and condition it
+        plt = plot.gen(image, np.array(c['scale']))
+        plt = plot.condition(plt, padding)
+        
+        # Save the max_coefficient for normalizing the output
+        max_coeff = int(np.max(plt - np.min(plt)) - 1)
 
-    # Build a DFT matrix of the plot and normalize it for
-    # writing into the messaage
-    dft = cv.dft(plt)
-    dft = dft * (dft_norm/np.max(np.abs(dft)))
+        # Build a DFT matrix of the plot and normalize it for
+        # writing into the messaage
+        dft = cv.dft(plt)
+        dft = dft * (dft_norm/np.max(np.abs(dft)))
 
-    # Write the DFT coefficients to a variable in the final form we want
-    msg_data = tc.msgdata_write(dft,n)
+        # Write the DFT coefficients to a variable in the final form we want
+        msg_data = tc.msgdata_write(dft,n)
 
-    # Write the framework for the message
-    msg_intro, msg_outro = tc.msgcontent_write(fp)
+        # Write the framework for the message
+        msg_intro, msg_outro = tc.msgcontent_write(fp)
 
-    with open(fp.out_fp,'w') as file:
-        for m in msg_intro.splitlines(): print(m, file=file)
-        print(
-            str(dft.shape[0]) + '/'
-            + str(dft.shape[1]) + '/'
-            + str(n) + '/'
-            + str(max_coeff) + '/'
-            + fp.dtg + '/'
-            + fp.subject + '/'
-            + 'A1R1G2U3S5/', 
-            file=file
-        )
-        for m in msg_data.splitlines(): print(m, file=file)
-        for m in msg_outro.splitlines(): print(m, file=file)
-    
-    os.startfile(fp.out_fp)
+        with open(fp.out_fp,'w') as file:
+            for m in msg_intro.splitlines(): print(m, file=file)
+            print(
+                str(dft.shape[0]) + '/'
+                + str(dft.shape[1]) + '/'
+                + str(n) + '/'
+                + str(max_coeff) + '/'
+                + fp.dtg + '/'
+                + fp.subject + '/'
+                + 'A1R1G2U3S5/', 
+                file=file
+            )
+            for m in msg_data.splitlines(): print(m, file=file)
+            for m in msg_outro.splitlines(): print(m, file=file)
+        
+        os.startfile(fp.out_fp)
 
 elif fp.ext.lower() == '.txt':
     with open(fp.orig_fp,'r') as file: msg = file.read()
@@ -83,6 +84,7 @@ elif fp.ext.lower() == '.txt':
 
     fp.update(template)
     c = bc.config_get(fp)
+    c['scale'] = np.array(c['scale']).astype(np.uint8)
 
     plt = cv.idft(dft)
 
@@ -91,12 +93,7 @@ elif fp.ext.lower() == '.txt':
     plt = plt[padding:-1*padding, padding:-1*padding]
     imageio.mimsave(
         fp.out_fp, 
-        [plot.restore(
-            plt,
-            template,
-            np.array(c['scale']).astype(np.uint8),
-            dtg
-        )]
+        [plot.restore(plt, fp, c['scale'], dtg)]
     )
 
     os.startfile(fp.out_fp)
