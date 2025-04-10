@@ -133,16 +133,16 @@ def build_template(image,fp):
                 # decide whether the scale is horizontal or vertical
                 if abs(b[4]-b[5]) >= abs(b[6]-b[7]):
                     b[6] = b[7] = (b[6] + b[7]) // 2
-                    b[0] = min(b[0],b[4] - r_highlight)
-                    b[1] = max(b[1],b[5] + r_highlight)
+                    b[0] = min(b[4],b[5]) - r_highlight
+                    b[1] = max(b[4],b[5]) + r_highlight
                     b[2] = ((b[6]+b[7])//2) - r_highlight
                     b[3] = ((b[6]+b[7])//2) + r_highlight
                 else:
                     b[4] = b[5] = (b[4] + b[5]) // 2
                     b[0] = ((b[4]+b[5])//2) - r_highlight
                     b[1] = ((b[4]+b[5])//2) + r_highlight
-                    b[2] = min(b[2],b[6] - r_highlight)
-                    b[3] = max(b[3],b[7] + r_highlight)
+                    b[2] = min(b[6],b[7]) - r_highlight
+                    b[3] = max(b[6],b[7]) + r_highlight
                 root.scale_box1 = b
 
             elif root.i == 2:

@@ -94,7 +94,7 @@ def gen(image, scale):
     for i in range(len(scale)):
         mask = out == 0
         for j in range(3): 
-            mask = np.multiply(mask, abs(image[t:b,l:r,j] - scale[i][j]) < 25)
+            mask = np.multiply(mask, abs(image[t:b,l:r,j] - scale[i][j]) < 2)
         out = out + (mask.astype(int) * (i + 1))
 
     out = out - edge_mean(out)
