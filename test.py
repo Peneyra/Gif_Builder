@@ -13,7 +13,7 @@ from PIL import Image
 n = 15
 padding = 25
 
-test = 5
+test = 6
 
 if test == 0:
     image = imageio.mimread('./examples/EUCOM.gif')

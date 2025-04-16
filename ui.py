@@ -314,7 +314,10 @@ def build_template(image,fp):
         Image.fromarray(root.images[root.i]).resize((x,y))
     )
     root.title("A R G U S - Build a template")
-    root.iconbitmap('argus.ico')
+    try:
+        root.iconbitmap('argus.ico')
+    except:
+        None
     root.config(bg = bg_color)
 
     #####################################################################
@@ -443,7 +446,10 @@ def choose_template(image,fp):
         #####################################################################
         # B u i l d   t h e   r o o t   U I
         root.title("A R G U S - Choose a Template")
-        root.iconbitmap('argus.ico')
+        try:
+            root.iconbitmap('argus.ico')
+        except:
+            None
         root.config(bg = bg_color)
 
         #####################################################################
