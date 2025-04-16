@@ -135,7 +135,7 @@ def condition(plt,padding):
     # input: np array (x,y)              - grayscale plot
     # output: np array (x+2*pad,y+2*pad) - grayscale plot
     plt = np.pad(plt, pad_width = padding, mode='symmetric')
-    plt = smooth(plt,2)
+    plt = smooth(plt,10)
 
     return plt
 

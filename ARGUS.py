@@ -20,9 +20,13 @@ from tkinter.filedialog import askopenfilename
 # 8. Interpret build the scalar array into the original input image
 # 9. Overlay a standard image template over the top of the scalar array
 
+print("This program is designed to compress a weather image into a small text file.")
+print("It was designed by LCDR Sean Peneyra in conjucntion with Aevix LLC.")
+print("If you have any questions or comments, feel free to reach out to")
+print("peneyra.s@gmail.com")
 
 # define constants
-n, padding, dft_norm = 18, 25, 1000
+n, padding, dft_norm = 16, 50, 1000
 
 # Open a file and save the filepath info
 # Creates a templates folder if one doesn't already exist
@@ -87,9 +91,8 @@ elif fp.ext.lower() == '.txt':
     c['scale'] = np.array(c['scale']).astype(np.uint8)
 
     plt = cv.idft(dft)
-
     plt[plt < 0] = 0
-    plt = plt * max_coeff // np.max(plt)
+    plt = (plt * max_coeff // np.max(plt)) + 1
     plt = plt[padding:-1*padding, padding:-1*padding]
     imageio.mimsave(
         fp.out_fp, 

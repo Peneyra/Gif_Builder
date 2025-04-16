@@ -1,4 +1,4 @@
-This program is designed to compress a weather image into as small a text file as possible without sacrificing accuracy.  It was designed by Aevix (aka Sean Peneyra, former submarine officer).
+This program is designed to compress a weather image into as small a text file as possible without sacrificing accuracy.  It was designed by LCDR Sean Peneyra in conjunction with Aevix LLC for use by the SSBN force.
 
 The accompanying PDF will contain a more readable set of procedures.
 
